@@ -77,9 +77,9 @@ textarea:focus, #topic:focus, input:focus { outline: 2px solid var(--accent); ou
 .hint { font-size: 13px; color: var(--muted); }
 
 /* Focus mode: dim everything but the question and the answer box */
-.fadeable { transition: opacity .5s ease; }
-body.focusing .fadeable { opacity: .25; }
-body.focusing .composer .fadeable { opacity: .5; }
+.fadeable { transition: opacity .5s ease, filter .5s ease; }
+body.focusing .fadeable { opacity: .15; filter: blur(3px); }
+body.focusing .composer .fadeable { opacity: .4; filter: blur(1px); }
 textarea { transition: box-shadow .5s ease; }
 body.focusing textarea { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent); }
 
