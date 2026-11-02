@@ -46,12 +46,12 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .wrap { max-width: 640px; margin: 0 auto; padding-block: 20px 48px; display: flex; flex-direction: column; gap: 28px; }
-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
 .mark { font-family: var(--f-q); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
 .mark span { color: var(--accent); }
 .link { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
 .link:hover { color: var(--ink); }
-.head-actions { display: flex; gap: 16px; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 
 .meta { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .chip { border: 1px solid var(--rule); border-radius: 99px; padding: 1px 8px; text-transform: none; letter-spacing: 0; }
@@ -76,6 +76,17 @@ textarea:focus, #topic:focus, input:focus { outline: 2px solid var(--accent); ou
 .btn:disabled { opacity: .5; cursor: default; }
 #mic.rec { border-color: var(--rec); color: var(--rec); }
 .hint { font-size: 13px; color: var(--muted); }
+
+/* Your questions */
+.field input[type=text] { font: inherit; font-size: 16px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); min-width: 0; flex: 1 1 200px; }
+#newTheme { flex: 0 1 180px; }
+#importText { min-height: 120px; font-size: 15px; }
+.qgroup { display: flex; flex-direction: column; gap: 6px; }
+.qgroup h3 { font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 8px 0 2px; }
+.qrow { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.qrow span { min-width: 0; overflow-wrap: anywhere; }
+.qrow .link { flex: none; font-size: 13px; }
+label.btn { display: inline-block; }
 
 /* Focus mode: dim everything but the question and the answer box */
 .fadeable { transition: opacity .5s ease, filter .5s ease; }
@@ -107,6 +118,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   <header class="fadeable">
     <div class="mark">Wonkite<span>.</span></div>
     <div class="head-actions">
+      <button class="link" id="openQuestions" type="button">Questions</button>
       <button class="link" id="openSettings" type="button">Settings</button>
       <button class="link" id="newSession" type="button">New session</button>
     </div>
@@ -159,6 +171,38 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       <button class="btn" id="save" type="button" hidden>Save .md</button>
       <span class="spacer"></span>
       <button class="link" id="keepGoing" type="button">Keep talking</button>
+    </div>
+  </section>
+
+  <!-- Your questions -->
+  <section id="questionsView" class="panel" hidden>
+    <h2>Your questions · <span id="myCount">None yet</span></h2>
+    <p class="note">Your questions join the About you set. Add them one at a time or import a list. They're kept on this device.</p>
+    <div class="field">
+      <label for="newQ" class="hint">Add a question</label>
+      <div class="row">
+        <input type="text" id="newQ" placeholder="What's a sound that reminds you of home?">
+        <input type="text" id="newTheme" placeholder="Theme (optional)" list="themeList">
+        <datalist id="themeList"></datalist>
+        <button class="btn primary" id="addQ" type="button">Add</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="importText" class="hint">Import a list</label>
+      <textarea id="importText" placeholder="One question per line. A line starting with # starts a new theme.&#10;&#10;# Road trips&#10;What's the best road you've ever driven?&#10;Where did you last break down, and what happened?"></textarea>
+      <div class="row">
+        <button class="btn" id="importBtn" type="button">Import</button>
+        <label class="btn" for="importFile">Choose a file</label>
+        <input type="file" id="importFile" accept=".txt,.md,.json,.csv,text/plain,application/json" hidden>
+        <span class="hint" id="importMsg">Plain text, Markdown or JSON.</span>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="onlyMine"> Only ask my questions in About you</label>
+    <div id="myList" class="panel"></div>
+    <div class="row">
+      <button class="link" id="copyMine" type="button">Copy my list</button>
+      <span class="spacer"></span>
+      <button class="btn" id="doneQs" type="button">Done</button>
     </div>
   </section>
 
@@ -501,12 +545,20 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     ]
   };
 
+  function activeBank() {
+    if (settings.onlyMine && Object.keys(custom).length) return custom;
+    const m = {};
+    for (const k in BANK) m[k] = BANK[k].slice();
+    for (const k in custom) m[k] = (m[k] || []).concat(custom[k]);
+    return m;
+  }
   function bankQ() {
-    const left = (c) => BANK[c].filter((q) => !S.usedT.includes(q));
-    let cats = Object.keys(BANK).filter((c) => c !== S.lastCat && left(c).length);
-    if (!cats.length) cats = Object.keys(BANK).filter((c) => left(c).length);
+    const B = activeBank();
+    const left = (c) => B[c].filter((q) => !S.usedT.includes(q));
+    let cats = Object.keys(B).filter((c) => c !== S.lastCat && left(c).length);
+    if (!cats.length) cats = Object.keys(B).filter((c) => left(c).length);
     if (!cats.length) {
-      const all = new Set(Object.values(BANK).flat());
+      const all = new Set(Object.values(B).flat());
       S.usedT = S.usedT.filter((q) => !all.has(q));
       return bankQ();
     }
@@ -612,6 +664,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
 
   // ---------- state ----------
   const settings = store.get("wk.settings", { online: false, endpoint: "" });
+  const custom = store.get("wk.custom", {});
   let S = store.get("wk.session", null) || fresh("day", "");
   function fresh(mode, topic) {
     return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [], lastCat: null };
@@ -666,6 +719,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     $("interview").hidden = view !== "interview";
     $("draftView").hidden = view !== "draft";
     $("settingsView").hidden = view !== "settings";
+    $("questionsView").hidden = view !== "questions";
   }
 
   function toast(msg) {
@@ -750,6 +804,104 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   $("saveSettings").addEventListener("click", () => {
     settings.online = $("onlineOn").checked; settings.endpoint = $("endpoint").value.trim();
     store.set("wk.settings", settings); render(); show("interview"); toast("Saved");
+  });
+
+  // ---------- your questions ----------
+  function parseList(text, theme) {
+    text = text.trim();
+    const out = {};
+    if (/^[\[{]/.test(text)) {
+      try {
+        const j = JSON.parse(text);
+        if (Array.isArray(j)) out[theme] = j.map(String);
+        else for (const k in j) if (Array.isArray(j[k])) out[k] = j[k].map(String);
+        return out;
+      } catch {}
+    }
+    for (let line of text.split(/\r?\n/)) {
+      line = line.trim();
+      if (!line) continue;
+      const h = line.match(/^#{1,6}\s+(.+)/);
+      if (h) { theme = h[1].trim(); continue; }
+      line = line.replace(/^([-*•+]|\d+[.)])\s+/, "").replace(/^"(.*)",?$/, "$1").trim();
+      if (line.length < 4) continue;
+      (out[theme] = out[theme] || []).push(line);
+    }
+    return out;
+  }
+  function addQuestions(map) {
+    const seen = new Set([...Object.values(BANK).flat(), ...Object.values(custom).flat()].map((q) => q.toLowerCase()));
+    let added = 0, dup = 0;
+    for (const [t, qs] of Object.entries(map)) {
+      for (const raw of qs) {
+        const q = raw.trim().slice(0, 300);
+        if (!q) continue;
+        if (seen.has(q.toLowerCase())) { dup++; continue; }
+        seen.add(q.toLowerCase());
+        (custom[t] = custom[t] || []).push(q);
+        added++;
+      }
+    }
+    store.set("wk.custom", custom);
+    renderMine();
+    return (added ? "Added " + added : "Nothing new to add") + (dup ? ", skipped " + dup + " already in the list." : ".");
+  }
+  function renderMine() {
+    const themes = Object.keys(custom);
+    const total = themes.reduce((n, t) => n + custom[t].length, 0);
+    $("myCount").textContent = total ? total + (total === 1 ? " question" : " questions") : "None yet";
+    const dl = $("themeList"); dl.textContent = "";
+    [...new Set([...themes, ...Object.keys(BANK)])].forEach((t) => { const o = document.createElement("option"); o.value = t; dl.appendChild(o); });
+    const box = $("myList"); box.textContent = "";
+    themes.forEach((t) => {
+      const g = document.createElement("div"); g.className = "qgroup";
+      const h = document.createElement("h3"); h.textContent = t; g.appendChild(h);
+      custom[t].forEach((q, i) => {
+        const r = document.createElement("div"); r.className = "qrow";
+        const s = document.createElement("span"); s.textContent = q;
+        const b = document.createElement("button"); b.type = "button"; b.className = "link"; b.textContent = "Remove";
+        b.addEventListener("click", () => {
+          custom[t].splice(i, 1);
+          if (!custom[t].length) delete custom[t];
+          store.set("wk.custom", custom); renderMine();
+        });
+        r.append(s, b); g.appendChild(r);
+      });
+      box.appendChild(g);
+    });
+  }
+  $("openQuestions").addEventListener("click", () => { renderMine(); $("onlyMine").checked = !!settings.onlyMine; show("questions"); $("newQ").focus(); });
+  $("doneQs").addEventListener("click", () => show("interview"));
+  $("addQ").addEventListener("click", () => {
+    const q = $("newQ").value.trim();
+    if (!q) { $("newQ").focus(); return; }
+    const t = $("newTheme").value.trim() || "My questions";
+    toast(addQuestions({ [t]: [q] }));
+    $("newQ").value = ""; $("newQ").focus();
+  });
+  $("newQ").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("addQ").click(); } });
+  $("importBtn").addEventListener("click", () => {
+    const text = $("importText").value;
+    if (!text.trim()) { $("importMsg").textContent = "Paste some questions first."; return; }
+    $("importMsg").textContent = addQuestions(parseList(text, $("newTheme").value.trim() || "My questions"));
+    $("importText").value = "";
+  });
+  $("importFile").addEventListener("change", () => {
+    const f = $("importFile").files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { $("importMsg").textContent = f.name + ": " + addQuestions(parseList(String(r.result), f.name.replace(/\.[^.]+$/, ""))); };
+    r.onerror = () => { $("importMsg").textContent = "Couldn't read " + f.name + "."; };
+    r.readAsText(f);
+    $("importFile").value = "";
+  });
+  $("onlyMine").addEventListener("change", () => { settings.onlyMine = $("onlyMine").checked; store.set("wk.settings", settings); });
+  $("copyMine").addEventListener("click", () => {
+    const text = Object.entries(custom).map(([t, qs]) => "# " + t + "\n" + qs.join("\n")).join("\n\n");
+    if (!text) { toast("No questions yet."); return; }
+    navigator.clipboard.writeText(text).then(() => toast("Copied")).catch(() => {
+      $("importText").value = text; $("importText").select(); toast("Selected in the import box. Copy it from there.");
+    });
   });
 
   // Voice input where the browser offers it
