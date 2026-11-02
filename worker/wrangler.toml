@@ -1,0 +1,10 @@
+name = "wonkite-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[ai]
+binding = "AI"
+
+[vars]
+# Set to your app's origin (e.g. https://wonkite.example.com) once it's hosted.
+ALLOWED_ORIGIN = "*"

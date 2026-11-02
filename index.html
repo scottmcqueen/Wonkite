@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wonkite</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E9EEEC">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column like a reporter's notepad — the current question is the page; the log trails underneath. */
+:root {
+  --bg: #E9EEEC;
+  --paper: #F6F8F7;
+  --ink: #1C2A30;
+  --muted: #5D6C70;
+  --rule: #CBD5D2;
+  --accent: #2C6A6E;
+  --accent-ink: #FFFFFF;
+  --rec: #B4432F;
+  --f-q: "Literata", "Iowan Old Style", Georgia, serif;
+  --f-ui: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12191C; --paper: #1A2327; --ink: #E2E9E7; --muted: #8E9C9E; --rule: #2C393D;
+    --accent: #74B6B5; --accent-ink: #0E1517; --rec: #E07A62; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12191C; --paper: #1A2327; --ink: #E2E9E7; --muted: #8E9C9E; --rule: #2C393D;
+  --accent: #74B6B5; --accent-ink: #0E1517; --rec: #E07A62; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; padding-block: 20px 48px; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mark { font-family: var(--f-q); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
+.mark span { color: var(--accent); }
+.link { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
+.link:hover { color: var(--ink); }
+.head-actions { display: flex; gap: 16px; }
+
+.meta { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.chip { border: 1px solid var(--rule); border-radius: 99px; padding: 1px 8px; text-transform: none; letter-spacing: 0; }
+.chip.on { border-color: var(--accent); color: var(--accent); }
+
+.modes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--muted); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
+#topic { font: inherit; font-size: 16px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); min-width: 0; flex: 1 1 200px; }
+
+.question { font-family: var(--f-q); font-size: clamp(26px, 6vw, 36px); line-height: 1.22; font-weight: 400; letter-spacing: -0.015em; margin: 0; text-wrap: balance; min-height: 2.4em; transition: opacity .25s; }
+.question.fade { opacity: .25; }
+.composer { display: flex; flex-direction: column; gap: 12px; }
+textarea { font: inherit; font-size: 17px; line-height: 1.55; width: 100%; min-height: 150px; resize: vertical; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); color: var(--ink); }
+textarea:focus, #topic:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.spacer { flex: 1; }
+.btn { font: inherit; font-size: 15px; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid var(--rule); background: transparent; color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:focus-visible, .link:focus-visible, .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: .5; cursor: default; }
+#mic.rec { border-color: var(--rec); color: var(--rec); }
+.hint { font-size: 13px; color: var(--muted); }
+
+.log { display: flex; flex-direction: column; gap: 18px; border-top: 1px solid var(--rule); padding-top: 20px; }
+.log h2, .panel h2 { font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.turn { display: grid; grid-template-columns: 2.6em 1fr; gap: 4px 10px; }
+.turn .n { font-family: var(--f-mono); font-size: 12px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.turn .q { font-family: var(--f-q); font-style: italic; color: var(--muted); min-width: 0; }
+.turn .a { grid-column: 2; white-space: pre-wrap; min-width: 0; overflow-wrap: anywhere; }
+
+.panel { display: flex; flex-direction: column; gap: 16px; }
+.draft { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 20px 22px; font-family: var(--f-q); font-size: 17px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 60vh; overflow: auto; }
+label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input[type=url] { font: inherit; font-size: 15px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); width: 100%; }
+.signoff { font-family: var(--f-q); font-style: italic; margin-top: -8px; }
+.note { font-size: 14px; color: var(--muted); max-width: 60ch; margin: 0; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; }
+.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .question { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="mark">Wonkite<span>.</span></div>
+    <div class="head-actions">
+      <button class="link" id="openSettings" type="button">Settings</button>
+      <button class="link" id="newSession" type="button">New session</button>
+    </div>
+  </header>
+  <div class="confirm" id="confirmNew" hidden>
+    <span>Start over? This session's answers will be cleared.</span>
+    <button class="btn" id="confirmYes" type="button">Start over</button>
+    <button class="link" id="confirmNo" type="button">Cancel</button>
+  </div>
+
+  <!-- Interview -->
+  <main id="interview" class="panel">
+    <div class="modes" id="modes">
+      <div class="seg" role="group" aria-label="What to talk about">
+        <button type="button" id="modeDay" aria-pressed="true">Your day</button>
+        <button type="button" id="modeSubject" aria-pressed="false">A subject</button>
+      </div>
+      <input id="topic" type="text" placeholder="What's the subject? (optional)" hidden>
+    </div>
+    <div class="meta"><span id="qnum">Q 01</span><span id="modeLabel">Your day</span><span id="dateLabel"></span><span class="chip" id="brainChip">Offline</span></div>
+    <h1 class="question" id="question" aria-live="polite">…</h1>
+    <div class="composer">
+      <textarea id="answer" placeholder="Answer however it comes out. Rough is fine."></textarea>
+      <div class="row">
+        <button class="btn primary" id="send" type="button">Answer</button>
+        <button class="btn" id="mic" type="button" hidden>Speak</button>
+        <span class="spacer"></span>
+        <button class="link" id="skip" type="button">Different question</button>
+        <button class="link" id="finish" type="button">Finish</button>
+      </div>
+      <div class="hint" id="kbHint">Ctrl/⌘ + Enter to answer.</div>
+    </div>
+    <section class="log" id="log" hidden>
+      <h2>So far</h2>
+      <div id="turns" class="panel"></div>
+    </section>
+  </main>
+
+  <!-- Draft -->
+  <section id="draftView" class="panel" hidden>
+    <h2>Your draft, in your words</h2>
+    <p class="note signoff">And that’s the way it is.</p>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="withQs"> Include the questions</label>
+    </div>
+    <div class="draft" id="draft"></div>
+    <div class="row">
+      <button class="btn primary" id="copy" type="button">Copy as Markdown</button>
+      <button class="btn" id="save" type="button" hidden>Save .md</button>
+      <span class="spacer"></span>
+      <button class="link" id="keepGoing" type="button">Keep talking</button>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="settingsView" class="panel" hidden>
+    <h2>Settings</h2>
+    <label class="check"><input type="checkbox" id="onlineOn"> Smarter questions (online)</label>
+    <div class="field">
+      <label for="endpoint" class="hint">Question service URL</label>
+      <input type="url" id="endpoint" placeholder="https://wonkite-api.yourname.workers.dev/question">
+    </div>
+    <p class="note">Offline, questions come from this device and nothing leaves it. Online, only your last few answers are sent to the service you set here to write the next question. If it doesn't answer within a few seconds, the offline interviewer takes over.</p>
+    <div class="row">
+      <button class="btn primary" id="saveSettings" type="button">Save</button>
+      <button class="link" id="closeSettings" type="button">Cancel</button>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  // ---------- storage ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+  const $ = (s) => document.getElementById(s);
+  const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
+
+  // ---------- offline interviewer ----------
+  const STOP = new Set(("a an the and or but so to of in on at for with from by about into over after before up down out off than then just really very quite pretty kind sort lot lots bit thing things stuff something anything everything nothing some any all this that these those it its it's i i'm i've i'd i'll me my mine myself we us our you your he she they them their his her him was were is are be been being am do did does done have has had get got getting go went going gone make made making say said says think thought know knew like went today yesterday tomorrow morning afternoon evening night day days time also still even well yeah yes no not don't didn't can't couldn't wasn't isn't would could should will maybe probably actually basically there here where when what who why how which one ones called came come told asked took take gave give saw see looked look felt feel seemed started stopped tried wanted want needed need decided left put ran kept let turned found used work worked back way much many more most other again around because though while if as too").split(" "));
+  const DET = /^(the|my|a|an|our|his|her|their|this|that|these|those)$/i;
+  const FEEL = /\b(felt|feel|feeling|happy|sad|angry|annoyed|frustrat\w*|nervous|anxious|excited|tired|exhausted|proud|relieved|scared|afraid|worried|stressed|calm|lonely|grateful|embarrass\w*|guilty|hurt|upset|glad|disappoint\w*|overwhelm\w*|bored|weird|strange)\b/i;
+  const NARR = /\b(then|after|afterwards|suddenly|finally|eventually|later|next)\b/i;
+  const FLIP = { my: "your", our: "your", me: "you", i: "you", myself: "yourself", mine: "yours", we: "you", us: "you", "i'm": "you're" };
+
+  const OPENERS = {
+    day: ["What's one thing from today that's still on your mind?", "How did today start?", "What happened today that you didn't expect?"],
+    subject: ["What do you want to talk about?"],
+    subjectTopic: ["What made you want to talk about {t} right now?", "Where does {t} start, for you?"]
+  };
+  const Q = {
+    detail: ["Take me back to {x}. What did it look like?", "What's the first thing you'd tell someone about {x}?", "Describe {x} for someone who wasn't there.", "What's one small detail about {x} you remember?"],
+    sensory: ["What could you hear or smell around {x}?", "Picture {x} again. What do you see first?"],
+    why: ["Why do you think {x} stuck with you?", "What made {x} matter?", "What does {x} say about where you are right now?"],
+    example: ["Give me one specific moment with {x}.", "Can you tell me about a time that shows what you mean?"],
+    contrast: ["How was {x} different from what you expected?", "What would {x} have looked like a year ago?"],
+    people: ["Who else was part of {x}?", "What would someone else who was there say about {x}?"],
+    outsider: ["What would people get wrong about {x} if they only heard the short version?"],
+    next: ["What happened after that?", "And then what?", "Where did it go from there?"],
+    feeling: ["How did that feel at the time?", "What was going on in your head right then?", "Has that feeling changed since?"],
+    expand: ["Say a bit more about that.", "Go on.", "What do you mean by {x}?"],
+    zoom: ["Let's step back. What else is part of this?", "What haven't you mentioned yet that belongs in here?", "If you had to pick the most important part so far, what would it be?"],
+    zoomDay: ["Let's step back. What else happened today?", "Was there a moment today you'd want to remember a year from now?", "Who did you talk to today?"],
+    zoomTopic: ["What else about {t} do you want to get down?"]
+  };
+  const ROT = ["detail", "why", "people", "sensory", "contrast", "example", "outsider"];
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  function flip(p) {
+    return p.split(" ").map((w) => FLIP[w.toLowerCase()] || w).join(" ");
+  }
+
+  function pickPhrase(text) {
+    const cands = [];
+    let pos = 0;
+    text.split(/[.!?;\n]+/).forEach((s) => {
+      const toks = s.match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+      toks.forEach((t, i) => {
+        pos++;
+        if (DET.test(t)) {
+          const parts = [t];
+          for (let j = i + 1; j < toks.length && parts.length < 4; j++) {
+            const w = toks[j];
+            if (STOP.has(w.toLowerCase()) || DET.test(w)) break;
+            parts.push(w);
+          }
+          while (parts.length > 2 && /ed$/i.test(parts[parts.length - 1])) parts.pop();
+          if (parts.length >= 2) cands.push({ p: parts.join(" "), s: parts.length + pos * 0.05 });
+        } else if (i > 0 && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase())) {
+          const parts = [t];
+          for (let j = i + 1; j < toks.length && /^[A-Z]/.test(toks[j]) && parts.length < 3; j++) parts.push(toks[j]);
+          cands.push({ p: parts.join(" "), s: 3 + pos * 0.05 });
+        } else if (t.length >= 6 && !STOP.has(t.toLowerCase())) {
+          cands.push({ p: "“" + t.toLowerCase() + "”", s: 0.5 + pos * 0.05 });
+        }
+      });
+    });
+    const used = new Set(S.usedP);
+    const best = cands.filter((c) => !used.has(c.p.toLowerCase())).sort((a, b) => b.s - a.s)[0];
+    if (!best) return null;
+    S.usedP.push(best.p.toLowerCase());
+    return flip(best.p);
+  }
+
+  function fill(kind, x) {
+    let pool = Q[kind].filter((t) => (x ? true : !t.includes("{x}")));
+    if (!pool.length) return null;
+    const fresh = pool.filter((t) => !S.usedT.includes(t));
+    const t = pick(fresh.length ? fresh : pool);
+    S.usedT.push(t);
+    return t.replace("{x}", x || "").replace("{t}", S.topic);
+  }
+
+  function offlineNext(ans) {
+    const words = ans.trim().split(/\s+/).filter(Boolean);
+    const recent = S.kinds.slice(-3);
+    const x = pickPhrase(ans);
+    let kind;
+    if (S.depth >= 4) kind = "zoom";
+    else if (words.length < 5 && recent[recent.length - 1] !== "expand") kind = "expand";
+    else if (FEEL.test(ans) && !recent.includes("feeling")) kind = "feeling";
+    else if (NARR.test(ans) && !recent.includes("next") && Math.random() < 0.6) kind = "next";
+    else {
+      for (let i = 0; i < ROT.length; i++) {
+        const k = ROT[(S.rot + i) % ROT.length];
+        if (!recent.includes(k)) { kind = k; S.rot = (S.rot + i + 1) % ROT.length; break; }
+      }
+      kind = kind || "detail";
+    }
+    if (kind === "zoom") {
+      const pool = S.mode === "day" ? "zoomDay" : S.topic ? "zoomTopic" : "zoom";
+      return { kind, q: Math.random() < 0.5 ? fill(pool) : fill("zoom") };
+    }
+    let q = fill(kind, x);
+    if (!q) { kind = pick(["next", "feeling", "expand"]); q = fill(kind, null); }
+    return { kind, q };
+  }
+
+  // ---------- online (optional) ----------
+  async function onlineNext(hintKind) {
+    if (!settings.online || !settings.endpoint) return null;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+      const res = await fetch(settings.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: S.mode, topic: S.topic, hint: hintKind,
+          turns: S.turns.slice(-6).map((t) => ({ q: t.q, a: t.a.slice(0, 1500) }))
+        }),
+        signal: ctrl.signal
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const q = String(data.question || "").trim();
+      if (!q.endsWith("?") || q.split(/\s+/).length > 30) return null;
+      return q;
+    } catch { return null; } finally { clearTimeout(timer); }
+  }
+
+  // ---------- state ----------
+  const settings = store.get("wk.settings", { online: false, endpoint: "" });
+  let S = store.get("wk.session", null) || fresh("day", "");
+  function fresh(mode, topic) {
+    return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [] };
+  }
+  function opener() {
+    if (S.mode === "day") return { kind: "open", q: pick(OPENERS.day) };
+    if (S.topic) return { kind: "open", q: pick(OPENERS.subjectTopic).replace("{t}", S.topic) };
+    return { kind: "open", q: OPENERS.subject[0] };
+  }
+  const save = () => store.set("wk.session", S);
+
+  // ---------- render ----------
+  const fmtDate = (ms) => new Date(ms).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function render() {
+    if (!S.current) { S.current = opener(); save(); }
+    $("question").textContent = S.current.q;
+    $("qnum").textContent = "Q " + pad(S.turns.length + 1);
+    $("modeLabel").textContent = S.mode === "day" ? "Your day" : (S.topic ? "On " + S.topic : "A subject");
+    $("dateLabel").textContent = fmtDate(S.started);
+    $("modes").hidden = S.turns.length > 0;
+    $("modeDay").setAttribute("aria-pressed", S.mode === "day");
+    $("modeSubject").setAttribute("aria-pressed", S.mode === "subject");
+    $("topic").hidden = S.mode !== "subject";
+    $("topic").value = S.topic;
+    const chip = $("brainChip");
+    const on = settings.online && settings.endpoint;
+    chip.textContent = on ? "Online" : "Offline";
+    chip.classList.toggle("on", !!on);
+    const list = $("turns");
+    list.textContent = "";
+    S.turns.slice().reverse().forEach((t, i) => {
+      const n = S.turns.length - i;
+      const d = document.createElement("div");
+      d.className = "turn";
+      d.innerHTML = '<div class="n"></div><div class="q"></div><div class="a"></div>';
+      d.querySelector(".n").textContent = pad(n);
+      d.querySelector(".q").textContent = t.q;
+      d.querySelector(".a").textContent = t.a;
+      list.appendChild(d);
+    });
+    $("log").hidden = S.turns.length === 0;
+    $("finish").disabled = S.turns.length === 0;
+  }
+
+  function show(view) {
+    $("interview").hidden = view !== "interview";
+    $("draftView").hidden = view !== "draft";
+    $("settingsView").hidden = view !== "settings";
+  }
+
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 1800);
+  }
+
+  // ---------- actions ----------
+  let busy = false;
+  async function answer() {
+    const a = $("answer").value.trim();
+    if (!a || busy) return;
+    busy = true; $("send").disabled = true;
+    S.turns.push({ q: S.current.q, a });
+    $("answer").value = "";
+    store.set("wk.draft", "");
+    const off = offlineNext(a);
+    $("question").classList.add("fade");
+    const online = await onlineNext(off.kind);
+    S.current = { kind: off.kind, q: online || off.q };
+    S.kinds.push(off.kind);
+    if (off.kind === "zoom") S.depth = 0; else S.depth++;
+    save(); render();
+    $("question").classList.remove("fade");
+    busy = false; $("send").disabled = false;
+    $("answer").focus();
+  }
+
+  function skip() {
+    const last = S.turns.length ? S.turns[S.turns.length - 1].a : "";
+    for (let i = 0; i < 6; i++) {
+      const r = last ? offlineNext(last) : opener();
+      if (r.q && r.q !== S.current.q) { S.current = r; save(); render(); return; }
+    }
+    toast("That's the best one I've got. Try answering it loosely.");
+  }
+
+  function draftText() {
+    const withQs = $("withQs").checked;
+    const title = S.mode === "day"
+      ? new Date(S.started).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+      : (S.topic || "Notes");
+    const body = S.turns.map((t) => (withQs ? "*" + t.q + "*\n\n" : "") + t.a).join("\n\n");
+    return "# " + title + "\n\n" + body + "\n";
+  }
+
+  // ---------- wiring ----------
+  $("send").addEventListener("click", answer);
+  $("answer").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); answer(); } });
+  $("answer").addEventListener("input", () => store.set("wk.draft", $("answer").value));
+  $("skip").addEventListener("click", skip);
+  $("modeDay").addEventListener("click", () => { S = fresh("day", ""); save(); render(); });
+  $("modeSubject").addEventListener("click", () => { S = fresh("subject", $("topic").value.trim()); save(); render(); $("topic").focus(); });
+  $("topic").addEventListener("change", () => { S.topic = $("topic").value.trim(); S.current = opener(); save(); render(); });
+  $("finish").addEventListener("click", () => { $("draft").textContent = draftText(); show("draft"); });
+  $("withQs").addEventListener("change", () => { $("draft").textContent = draftText(); });
+  $("keepGoing").addEventListener("click", () => { show("interview"); $("answer").focus(); });
+  $("copy").addEventListener("click", () => {
+    const text = draftText();
+    navigator.clipboard.writeText(text).then(() => toast("Copied")).catch(() => {
+      const r = document.createRange(); r.selectNodeContents($("draft"));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      toast("Selected. Copy it from here.");
+    });
+  });
+  $("save").hidden = inFrame;
+  $("save").addEventListener("click", () => {
+    const blob = new Blob([draftText()], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "wonkite-" + new Date(S.started).toISOString().slice(0, 10) + ".md";
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("newSession").addEventListener("click", () => { if (S.turns.length) $("confirmNew").hidden = false; else { S = fresh(S.mode, ""); save(); render(); } });
+  $("confirmNo").addEventListener("click", () => ($("confirmNew").hidden = true));
+  $("confirmYes").addEventListener("click", () => { $("confirmNew").hidden = true; S = fresh(S.mode, ""); save(); render(); show("interview"); });
+  $("openSettings").addEventListener("click", () => {
+    $("onlineOn").checked = settings.online; $("endpoint").value = settings.endpoint; show("settings");
+  });
+  $("closeSettings").addEventListener("click", () => show("interview"));
+  $("saveSettings").addEventListener("click", () => {
+    settings.online = $("onlineOn").checked; settings.endpoint = $("endpoint").value.trim();
+    store.set("wk.settings", settings); render(); show("interview"); toast("Saved");
+  });
+
+  // Voice input where the browser offers it
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR && !inFrame) {
+    const mic = $("mic"); mic.hidden = false;
+    let rec = null;
+    mic.addEventListener("click", () => {
+      if (rec) { rec.stop(); return; }
+      try {
+        rec = new SR(); rec.continuous = true; rec.interimResults = false; rec.lang = navigator.language || "en-US";
+        const base = $("answer").value;
+        let said = "";
+        rec.onresult = (e) => {
+          for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) said += e.results[i][0].transcript.trim() + " ";
+          $("answer").value = (base ? base + " " : "") + said.trim();
+          store.set("wk.draft", $("answer").value);
+        };
+        rec.onend = () => { rec = null; mic.classList.remove("rec"); mic.textContent = "Speak"; };
+        rec.onerror = () => toast("Voice input isn't available here.");
+        rec.start(); mic.classList.add("rec"); mic.textContent = "Stop";
+      } catch { rec = null; toast("Voice input isn't available here."); }
+    });
+  }
+  if (matchMedia("(pointer: coarse)").matches) $("kbHint").hidden = true;
+
+  // Installable + offline when hosted on its own
+  if (!inFrame && "serviceWorker" in navigator && location.protocol === "https:") {
+    const l = document.createElement("link"); l.rel = "manifest"; l.href = "manifest.webmanifest"; document.head.appendChild(l);
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
+  $("answer").value = store.get("wk.draft", "");
+  render();
+})();
+</script>

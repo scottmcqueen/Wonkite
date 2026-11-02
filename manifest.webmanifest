@@ -1,0 +1,9 @@
+{
+  "name": "Wonkite",
+  "short_name": "Wonkite",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#E9EEEC",
+  "theme_color": "#E9EEEC",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
