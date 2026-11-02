@@ -47,7 +47,7 @@ export default {
     const turns = Array.isArray(body.turns) ? body.turns.slice(-6) : [];
     if (!turns.length) return new Response("No turns", { status: 400, headers });
 
-    const subject = body.mode === "day" ? "their day" : (String(body.topic || "").slice(0, 80) || "a subject of their choosing");
+    const subject = body.mode === "day" ? "their day" : body.mode === "you" ? "themselves, in a friendly getting-to-know-you conversation" : (String(body.topic || "").slice(0, 80) || "a subject of their choosing");
     const hint = HINTS[body.hint] ? " " + HINTS[body.hint] : "";
 
     const messages = [{ role: "system", content: `${SYSTEM} They are talking about ${subject}.${hint}` }];

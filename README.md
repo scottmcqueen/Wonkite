@@ -6,7 +6,7 @@
 
 Word tonight of a new interviewer. It does not argue, it does not advise, and it does not finish your sentences for you. It asks a question, and then it listens.
 
-It is called Wonkite. Its mission is a modest one: to get a person past the blank page. You tell it about your day, or about a subject of your choosing. It asks one question at a time, each drawn from what you have just said. When you are through, it hands back your own words, set down as a Markdown draft. The questions, if you want them, can come along too.
+It is called Wonkite. Its mission is a modest one: to get a person past the blank page. You tell it about your day, about a subject of your choosing, or simply about yourself. For that last, it keeps a bank of some two hundred and fifty getting-to-know-you questions on sixteen themes, from growing up to the road ahead. It asks one question at a time, each drawn from what you have just said. When you are through, it hands back your own words, set down as a Markdown draft. The questions, if you want them, can come along too.
 
 ## The report
 

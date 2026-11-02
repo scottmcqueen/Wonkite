@@ -123,6 +123,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       <div class="seg" role="group" aria-label="What to talk about">
         <button type="button" id="modeDay" aria-pressed="true">Your day</button>
         <button type="button" id="modeSubject" aria-pressed="false">A subject</button>
+        <button type="button" id="modeYou" aria-pressed="false">About you</button>
       </div>
       <input id="topic" type="text" placeholder="What's the subject? (optional)" hidden>
     </div>
@@ -218,6 +219,303 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const ROT = ["detail", "why", "people", "sensory", "contrast", "example", "outsider"];
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+  // Getting-to-know-you question bank, by theme
+  const BANK = {
+    "Growing up": [
+      "What did you want to be when you grew up, and how close did you get?",
+      "What's a smell that takes you straight back to being a kid?",
+      "Where did you go to hide or disappear when you were young?",
+      "What toy or game did you play with until it fell apart?",
+      "What did a perfect summer day look like when you were ten?",
+      "Who was an adult outside your family who made a big impression on you as a kid?",
+      "What's something you believed as a child that turned out to be completely wrong?",
+      "What was the first thing you remember being really good at?",
+      "What did your childhood bedroom look like?",
+      "What was the best thing about the street or neighborhood you grew up on?",
+      "What trouble did you get into as a kid that you can laugh about now?",
+      "What was dinner like at your house growing up?",
+      "What was a family tradition you loved, or quietly dreaded?",
+      "What's the earliest memory you're sure is real?",
+      "What did you collect as a kid?",
+      "Which teacher do you still think about, and why?",
+      "What was the first book you remember loving?",
+      "What were weekends like when you were young?"
+    ],
+    "Places": [
+      "Where's the place you feel most like yourself?",
+      "What's the best view you've ever woken up to?",
+      "Describe a room you've lived in that you still miss.",
+      "What's a place you went back to that had changed completely?",
+      "What does home mean to you right now?",
+      "What's your favorite spot within walking distance of where you sleep?",
+      "What's a town you passed through once and still think about?",
+      "If you could live anywhere for one year, where would it be and why?",
+      "What's something about where you're from that outsiders don't know?",
+      "What's the first place you'd show a visitor?",
+      "Where do you go when you need to think?",
+      "What sound do you associate with home?",
+      "What's a building you love, and what about it?",
+      "What's the strangest place you've ever slept?",
+      "Which season suits you best, and where would you spend it?",
+      "What's a place that feels like it belongs to you?"
+    ],
+    "Travel": [
+      "What trip changed the way you see things?",
+      "What's the best meal you've had while traveling?",
+      "When did a trip go wrong in a way that turned out better than the plan?",
+      "What's the farthest you've been from home, and what was it like?",
+      "What's a journey you'd do again exactly the same way?",
+      "What's something you always pack, no matter where you're going?",
+      "Who's the most memorable stranger you've met on the road?",
+      "Where do you want to go next, and what's stopping you?",
+      "What's a place that lived up to the hype?",
+      "What's a place that didn't live up to the hype, and why?",
+      "What's the longest you've gone without a plan?",
+      "What's your favorite way to travel, and what do you love about it?",
+      "What did you learn about yourself the first time you traveled alone?",
+      "What's a border crossing, airport or bus station story you still tell?",
+      "What souvenir do you still have, and what's the story behind it?",
+      "What's a road you'd happily drive again?",
+      "What's the best thing about arriving somewhere new?"
+    ],
+    "Work": [
+      "What's a job you had that taught you more than it should have?",
+      "What was your first paid job, and what do you remember about it?",
+      "What part of your work would you do even if nobody paid you?",
+      "What do people at work come to you for?",
+      "What's the best piece of advice a boss or coworker ever gave you?",
+      "What does a really good workday feel like?",
+      "What does everyone outside your line of work get wrong about it?",
+      "What's a project you're proud of that nobody really noticed?",
+      "If you had to switch careers tomorrow, what would you try?",
+      "What tool do you rely on most?",
+      "Who taught you the most about doing a job well?",
+      "What's a mistake at work you learned the most from?",
+      "What did you think your work life would look like ten years ago?",
+      "What's a job you'd be terrible at, and why?",
+      "What's the most unusual job you've ever done?",
+      "What's a problem you solved that you're still a little smug about?"
+    ],
+    "Skills and learning": [
+      "What's something you taught yourself?",
+      "What's a skill you'd love to have without having to practice?",
+      "What's the last thing you learned that genuinely surprised you?",
+      "What could you give a twenty-minute talk on with no preparation?",
+      "What's something you were bad at for a long time and finally got good at?",
+      "What's a hobby you dropped that you sometimes miss?",
+      "What's a subject you could read about for hours?",
+      "What's a rabbit hole you went down recently?",
+      "Whose skill at something do you really admire?",
+      "What's a small, useless talent you have?",
+      "What's something you'd like to learn this year?",
+      "What's the best class or course you ever took?",
+      "What's something you know how to fix?",
+      "What's a fact you love telling people?",
+      "How do you usually go about learning something new?",
+      "What's something you learned the hard way?"
+    ],
+    "Food": [
+      "What's a meal you could eat every week and never get tired of?",
+      "What's a dish that reminds you of someone?",
+      "What do you cook when you have no time?",
+      "What's a food you hated as a kid and love now?",
+      "What's the best thing you've ever eaten from a street stall or roadside?",
+      "What does your ideal breakfast look like?",
+      "How do you take your coffee or tea, and how long have you had it that way?",
+      "What's a recipe you've got down perfectly?",
+      "What's a snack you always have on hand?",
+      "What's a food you'd struggle to explain to someone who's never had it?",
+      "What's a kitchen disaster you still remember?",
+      "What's a restaurant or cafe you'd send a friend to?",
+      "What's the most memorable meal you've shared with other people?",
+      "What food do you associate with a specific place?",
+      "What's something you've cooked that you were proud of?"
+    ],
+    "Books, music and film": [
+      "What's a book you've read more than once?",
+      "What's a song that takes you back to a specific moment?",
+      "What's a movie you could quote from start to finish?",
+      "What album got you through a hard stretch?",
+      "What's a book you'd hand to a stranger?",
+      "What story, from anywhere, stuck with you longer than you expected?",
+      "What was the first concert or live show you went to?",
+      "What's a show you rewatch when you need comfort?",
+      "What do you listen to on a long drive?",
+      "What's a book that changed your mind about something?",
+      "What fictional place would you most like to visit?",
+      "What character do you relate to more than you'd like to admit?",
+      "What's something you love that nobody else seems to know about?",
+      "What were you reading or listening to a year ago?",
+      "What's a piece of art that stopped you in your tracks?",
+      "What's a story you'd love to see told that nobody has told yet?"
+    ],
+    "Habits and routines": [
+      "What does the first hour of your day usually look like?",
+      "What's a small routine that keeps you sane?",
+      "What's a habit you've picked up in the last year?",
+      "What's a habit you're trying to break?",
+      "How do you wind down at the end of the day?",
+      "What's something you do exactly the same way every time?",
+      "Are you a planner or someone who wings it? Give me an example.",
+      "What do you do on a day with nothing scheduled?",
+      "What's your relationship with your phone like?",
+      "What's a chore you secretly enjoy?",
+      "What does your workspace look like right now?",
+      "What do you always notice that other people don't?",
+      "When do you do your best thinking?",
+      "What's a rule you have for yourself that others might find odd?",
+      "What's the last thing you do before you go to sleep?"
+    ],
+    "People": [
+      "Who's someone who shaped the way you think?",
+      "What's the best thing a friend has ever done for you?",
+      "How did you meet one of your oldest friends?",
+      "Who's the funniest person you know, and what makes them funny?",
+      "What's something you learned from a grandparent or older relative?",
+      "Who's someone you've lost touch with that you still think about?",
+      "What do you admire most in other people?",
+      "What's a compliment you've never forgotten?",
+      "Who do you call when something good happens?",
+      "What makes a good neighbor?",
+      "Who's someone you met briefly who made a big impression?",
+      "What do you and your friends always end up doing together?",
+      "What's a lesson you learned from someone younger than you?",
+      "Who's someone you'd love to have one more conversation with?",
+      "What's the best advice you've ever ignored?",
+      "Who's someone you'd like to thank but never have?"
+    ],
+    "Memories": [
+      "What's a day you'd relive exactly as it was?",
+      "What's the bravest thing you've ever done?",
+      "When did you first feel like a grown-up?",
+      "What's the first thing you bought with your own money?",
+      "When did you last laugh so hard you couldn't stop?",
+      "What's a risk you took that paid off?",
+      "What's a decision that changed the direction of your life?",
+      "When were you completely out of your depth?",
+      "What's the best surprise you've ever had?",
+      "When did you feel really proud of yourself?",
+      "What's something you did once and never want to do again?",
+      "What's the most beautiful thing you've ever seen?",
+      "What's a memory you go back to when you need to feel better?",
+      "Tell me about a time you got lost.",
+      "What's a small moment from years ago that you've never forgotten?",
+      "What's a time you surprised yourself?"
+    ],
+    "Outlook": [
+      "What's something you've changed your mind about as you've gotten older?",
+      "What's a small thing that makes a day good?",
+      "What does a well-lived life look like to you?",
+      "What's something you're grateful for that you rarely mention?",
+      "What do you wish more people understood?",
+      "What's an opinion you hold that most people around you don't?",
+      "What's something you used to worry about that doesn't bother you anymore?",
+      "What's the best decision you've made in the last five years?",
+      "What does success mean to you now, compared to before?",
+      "What advice would you give your younger self?",
+      "What are you more patient about than you used to be?",
+      "What makes you lose track of time?",
+      "What do you want to be remembered for?",
+      "What's something you're still figuring out?",
+      "What's a belief you hold that you've never been able to explain?"
+    ],
+    "Outdoors": [
+      "What's your favorite kind of weather?",
+      "What's the best night sky you've ever seen?",
+      "What's a trail, road or route you'd do again tomorrow?",
+      "What's an animal you've had a memorable encounter with?",
+      "Mountains, coast, desert or forest, and why?",
+      "Where outdoors do you feel small in a good way?",
+      "What's the most extreme weather you've been caught in?",
+      "What's something you've grown, built or made outside?",
+      "What's a sunrise or sunset you remember?",
+      "What's your favorite way to spend a day outside?",
+      "What's a pet, yours or someone else's, that you'll never forget?",
+      "What's a sound in nature you love?",
+      "What's the best campsite, picnic spot or bench you've ever found?"
+    ],
+    "Making things": [
+      "What's something you've made with your hands that you're proud of?",
+      "What's a creative project you keep meaning to start?",
+      "Where do your best ideas come from?",
+      "What's something you've fixed instead of replacing?",
+      "What do you make when you have time to make anything?",
+      "What's a photo you've taken that you love?",
+      "What's something you've written that you're glad exists?",
+      "What creative thing did you do as a kid that you stopped doing?",
+      "What's the most ambitious thing you've ever built?",
+      "What's an idea you've had that you still think about?",
+      "What's something you've designed for yourself?",
+      "What would you make if you knew nobody would ever see it?",
+      "What does your process look like when you're making something?"
+    ],
+    "What if": [
+      "If you could master any instrument overnight, which would it be?",
+      "If you had a free afternoon in any city in the world, where would you spend it?",
+      "Which three people, living or dead, would you want at a dinner table, and what would you ask them?",
+      "If you could open a small shop, what would it sell?",
+      "If you had to teach a class on anything, what would it be?",
+      "If you could witness any moment in history, which would you choose?",
+      "If you got one extra hour every day, what would you do with it?",
+      "If you could instantly speak one more language, which one and why?",
+      "If you could live in any decade, which would you pick?",
+      "If a modest windfall landed tomorrow, what's the first thing you'd do with it?",
+      "If you could have any job for one week, what would it be?",
+      "If you could bring one thing back from the past, what would it be?",
+      "If your life had a theme song, what would it be?",
+      "If you could ask your future self one question, what would it be?",
+      "If you could take a year off, how would you spend it?",
+      "If you could be an expert in one thing overnight, what would you choose?",
+      "If you could spend a day shadowing anyone at their job, whose would it be?"
+    ],
+    "Small joys": [
+      "What's something small that always makes you smile?",
+      "What's a cheap purchase that made your life noticeably better?",
+      "What's a guilty pleasure you don't feel that guilty about?",
+      "What are you weirdly competitive about?",
+      "What's an everyday object you're oddly attached to?",
+      "What's a word you love the sound of?",
+      "What's the best thing that happened to you this week?",
+      "What do you end up collecting without meaning to?",
+      "What's a smell you love that most people don't?",
+      "What's a tiny luxury you allow yourself?",
+      "What's your favorite thing about the place you're in right now?",
+      "What's a compliment you like getting most?",
+      "What's a comfort item you'd take anywhere?",
+      "What's the best part of your usual week?"
+    ],
+    "Looking ahead": [
+      "What's something you're looking forward to?",
+      "What's a goal you haven't told many people about?",
+      "What would you like to be doing five years from now?",
+      "What's something you want to get better at this year?",
+      "What's on your list of things to do someday?",
+      "What's a project you'd start if time weren't a problem?",
+      "What's a place you're determined to see?",
+      "What's a change you're working on right now?",
+      "What do you hope stays the same in your life?",
+      "What's a question you'd like an answer to someday?",
+      "What would make next month a good month?",
+      "What's something you'd like to try at least once?",
+      "What's a skill you want to have by this time next year?"
+    ]
+  };
+
+  function bankQ() {
+    const left = (c) => BANK[c].filter((q) => !S.usedT.includes(q));
+    let cats = Object.keys(BANK).filter((c) => c !== S.lastCat && left(c).length);
+    if (!cats.length) cats = Object.keys(BANK).filter((c) => left(c).length);
+    if (!cats.length) {
+      const all = new Set(Object.values(BANK).flat());
+      S.usedT = S.usedT.filter((q) => !all.has(q));
+      return bankQ();
+    }
+    const c = pick(cats);
+    const q = pick(left(c));
+    S.usedT.push(q); S.lastCat = c;
+    return q;
+  }
+
   function flip(p) {
     return p.split(" ").map((w) => FLIP[w.toLowerCase()] || w).join(" ");
   }
@@ -280,6 +578,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       kind = kind || "detail";
     }
     if (kind === "zoom") {
+      if (S.mode === "you") return { kind, q: bankQ() };
       const pool = S.mode === "day" ? "zoomDay" : S.topic ? "zoomTopic" : "zoom";
       return { kind, q: Math.random() < 0.5 ? fill(pool) : fill("zoom") };
     }
@@ -315,9 +614,10 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const settings = store.get("wk.settings", { online: false, endpoint: "" });
   let S = store.get("wk.session", null) || fresh("day", "");
   function fresh(mode, topic) {
-    return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [] };
+    return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [], lastCat: null };
   }
   function opener(avoid) {
+    if (S.mode === "you") return { kind: "open", q: bankQ() };
     const pool = S.mode === "day" ? OPENERS.day
       : S.topic ? OPENERS.subjectTopic.map((t) => t.replace("{t}", S.topic))
       : OPENERS.subject;
@@ -334,11 +634,12 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     if (!S.current) { S.current = opener(); save(); }
     $("question").textContent = S.current.q;
     $("qnum").textContent = "Q " + pad(S.turns.length + 1);
-    $("modeLabel").textContent = S.mode === "day" ? "Your day" : (S.topic ? "On " + S.topic : "A subject");
+    $("modeLabel").textContent = S.mode === "day" ? "Your day" : S.mode === "you" ? "About you" : (S.topic ? "On " + S.topic : "A subject");
     $("dateLabel").textContent = fmtDate(S.started);
     $("modes").hidden = S.turns.length > 0;
     $("modeDay").setAttribute("aria-pressed", S.mode === "day");
     $("modeSubject").setAttribute("aria-pressed", S.mode === "subject");
+    $("modeYou").setAttribute("aria-pressed", S.mode === "you");
     $("topic").hidden = S.mode !== "subject";
     $("topic").value = S.topic;
     const chip = $("brainChip");
@@ -406,7 +707,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     const withQs = $("withQs").checked;
     const title = S.mode === "day"
       ? new Date(S.started).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-      : (S.topic || "Notes");
+      : S.mode === "you" ? "About me" : (S.topic || "Notes");
     const body = S.turns.map((t) => (withQs ? "*" + t.q + "*\n\n" : "") + t.a).join("\n\n");
     return "# " + title + "\n\n" + body + "\n";
   }
@@ -417,6 +718,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   $("answer").addEventListener("input", () => store.set("wk.draft", $("answer").value));
   $("skip").addEventListener("click", skip);
   $("modeDay").addEventListener("click", () => { S = fresh("day", ""); save(); render(); });
+  $("modeYou").addEventListener("click", () => { S = fresh("you", ""); save(); render(); });
   $("modeSubject").addEventListener("click", () => { S = fresh("subject", $("topic").value.trim()); save(); render(); $("topic").focus(); });
   $("topic").addEventListener("change", () => { S.topic = $("topic").value.trim(); S.current = opener(); save(); render(); });
   $("finish").addEventListener("click", () => { $("draft").textContent = draftText(); show("draft"); });
