@@ -36,6 +36,7 @@
   --accent: #74B6B5; --accent-ink: #0E1517; --rec: #E07A62; color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { min-height: 100%; }
 html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -195,8 +196,8 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const FLIP = { my: "your", our: "your", me: "you", i: "you", myself: "yourself", mine: "yours", we: "you", us: "you", "i'm": "you're" };
 
   const OPENERS = {
-    day: ["What's one thing from today that's still on your mind?", "How did today start?", "What happened today that you didn't expect?"],
-    subject: ["What do you want to talk about?"],
+    day: ["What's one thing from today that's still on your mind?", "How did today start?", "What happened today that you didn't expect?", "Where were you for most of today?", "What's something small from today you'd otherwise forget?", "Who did you spend time with today?", "What took up most of your energy today?"],
+    subject: ["What do you want to talk about?", "What's been on your mind lately?", "What have you been meaning to write about?", "If a friend asked what's new, what would you tell them about?"],
     subjectTopic: ["What made you want to talk about {t} right now?", "Where does {t} start, for you?"]
   };
   const Q = {
@@ -262,15 +263,15 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     return t.replace("{x}", x || "").replace("{t}", S.topic);
   }
 
-  function offlineNext(ans) {
+  function offlineNext(ans, skipping) {
     const words = ans.trim().split(/\s+/).filter(Boolean);
     const recent = S.kinds.slice(-3);
     const x = pickPhrase(ans);
     let kind;
     if (S.depth >= 4) kind = "zoom";
-    else if (words.length < 5 && recent[recent.length - 1] !== "expand") kind = "expand";
-    else if (FEEL.test(ans) && !recent.includes("feeling")) kind = "feeling";
-    else if (NARR.test(ans) && !recent.includes("next") && Math.random() < 0.6) kind = "next";
+    else if (!skipping && words.length < 5 && recent[recent.length - 1] !== "expand") kind = "expand";
+    else if (!skipping && FEEL.test(ans) && !recent.includes("feeling")) kind = "feeling";
+    else if (!skipping && NARR.test(ans) && !recent.includes("next") && Math.random() < 0.6) kind = "next";
     else {
       for (let i = 0; i < ROT.length; i++) {
         const k = ROT[(S.rot + i) % ROT.length];
@@ -316,10 +317,12 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   function fresh(mode, topic) {
     return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [] };
   }
-  function opener() {
-    if (S.mode === "day") return { kind: "open", q: pick(OPENERS.day) };
-    if (S.topic) return { kind: "open", q: pick(OPENERS.subjectTopic).replace("{t}", S.topic) };
-    return { kind: "open", q: OPENERS.subject[0] };
+  function opener(avoid) {
+    const pool = S.mode === "day" ? OPENERS.day
+      : S.topic ? OPENERS.subjectTopic.map((t) => t.replace("{t}", S.topic))
+      : OPENERS.subject;
+    const choices = pool.filter((q) => q !== avoid);
+    return { kind: "open", q: pick(choices.length ? choices : pool) };
   }
   const save = () => store.set("wk.session", S);
 
@@ -393,7 +396,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   function skip() {
     const last = S.turns.length ? S.turns[S.turns.length - 1].a : "";
     for (let i = 0; i < 6; i++) {
-      const r = last ? offlineNext(last) : opener();
+      const r = last ? offlineNext(last, true) : opener(S.current.q);
       if (r.q && r.q !== S.current.q) { S.current = r; save(); render(); return; }
     }
     toast("That's the best one I've got. Try answering it loosely.");
