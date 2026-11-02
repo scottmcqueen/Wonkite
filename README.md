@@ -2,28 +2,45 @@
 
 **[Try it → scottmcqueen.github.io/Wonkite](https://scottmcqueen.github.io/Wonkite/)**
 
-A small interviewer, named with a nod to Walter Cronkite. It asks one question at a time so you can talk your way past the blank page. When you're done, it hands back what you said as a Markdown draft.
+*Good evening.*
 
-## How it works
+Word tonight of a new interviewer. It does not argue, it does not advise, and it does not finish your sentences for you. It asks a question, and then it listens.
 
-- **Offline (default).** Questions come from a question bank on the device. It picks a phrase from your last answer ("your brother's truck", "Marquette") and rotates through question types: detail, why, people, senses, contrast, example, what someone would get wrong. It notices feelings and "and then" moments and follows them. After about four questions on one thread it steps back. Nothing leaves the device.
-- **Online (optional).** In Settings, turn on smarter questions and give it the URL of the question service in `worker/`. It sends the last six questions and answers and gets one question back. If the service is slow or fails, the offline interviewer answers instead.
-- Sessions and the unsent answer are kept in the browser's local storage.
-- Voice input uses the browser's speech recognition where available (Chrome, Safari).
+It is called Wonkite. Its mission is a modest one: to get a person past the blank page. You tell it about your day, or about a subject of your choosing. It asks one question at a time, each drawn from what you have just said. When you are through, it hands back your own words, set down as a Markdown draft. The questions, if you want them, can come along too.
 
-## Run it
+## The report
 
-Any static host works. The files at the root are the whole app:
+**It works offline.** The questions come from the device itself. Wonkite picks out a detail from your last answer, a place, a name, a "your brother's truck," and builds its next question around it. It moves through the reporter's standard set: the detail, the why, the people involved, what it looked and sounded like, how it differed from what you expected, and what someone hearing the short version would get wrong. When you mention a feeling, it follows the feeling. When you say "and then," it asks what happened next. After four questions on one line of inquiry, it steps back and asks what else belongs in the story. Nothing you say leaves the device.
+
+**It can be smarter, if you ask.** In Settings, a reporter may switch on the online mode and give the address of a question service, found in `worker/`. Only the last six questions and answers are sent. Should the service be slow, or fail to answer at all, the offline interviewer takes the next question without missing a beat.
+
+**It keeps your attention on the question.** While you are answering, the rest of the page dims and the answer box comes forward. Move the mouse away, or press Esc, and the room comes back up.
+
+**It keeps your notes.** The session, and any answer not yet sent, stay in the browser's local storage. On browsers that offer it, Chrome and Safari among them, you may speak your answers rather than type them.
+
+## Putting it on the air
+
+Any static host will do. The entire program is four files:
 
     index.html  manifest.webmanifest  sw.js  icon.svg
 
-Served over HTTPS it can be added to a phone's home screen and works offline.
+Served over HTTPS, it can be added to a phone's home screen and will work without a connection.
 
-Locally: `python3 -m http.server 8080` and open http://localhost:8080.
+To try it locally:
 
-## Question service (Cloudflare Workers AI)
+    python3 -m http.server 8080
+
+and open http://localhost:8080.
+
+## The question service
+
+The optional service runs on Cloudflare Workers AI.
 
     cd worker
     npx wrangler deploy
 
-The endpoint is `https://wonkite-api.<your-subdomain>.workers.dev/question`. Once the app has a home, set `ALLOWED_ORIGIN` in `wrangler.toml` to its origin. The model is set at the top of `src/index.js`.
+Its address will be `https://wonkite-api.<your-subdomain>.workers.dev/question`. Once the app has a permanent home, set `ALLOWED_ORIGIN` in `wrangler.toml` to that origin. The model is named at the top of `src/index.js`.
+
+---
+
+*And that's the way it is.*
