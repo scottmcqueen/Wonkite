@@ -76,6 +76,13 @@ textarea:focus, #topic:focus, input:focus { outline: 2px solid var(--accent); ou
 #mic.rec { border-color: var(--rec); color: var(--rec); }
 .hint { font-size: 13px; color: var(--muted); }
 
+/* Focus mode: dim everything but the question and the answer box */
+.fadeable { transition: opacity .5s ease; }
+body.focusing .fadeable { opacity: .25; }
+body.focusing .composer .fadeable { opacity: .5; }
+textarea { transition: box-shadow .5s ease; }
+body.focusing textarea { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent); }
+
 .log { display: flex; flex-direction: column; gap: 18px; border-top: 1px solid var(--rule); padding-top: 20px; }
 .log h2, .panel h2 { font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
 .turn { display: grid; grid-template-columns: 2.6em 1fr; gap: 4px 10px; }
@@ -92,11 +99,11 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
 .note { font-size: 14px; color: var(--muted); max-width: 60ch; margin: 0; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; }
 .confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 14px; }
-@media (prefers-reduced-motion: reduce) { .question { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .question, .fadeable, textarea { transition: none; } }
 </style>
 
 <div class="wrap">
-  <header>
+  <header class="fadeable">
     <div class="mark">Wonkite<span>.</span></div>
     <div class="head-actions">
       <button class="link" id="openSettings" type="button">Settings</button>
@@ -111,27 +118,27 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
 
   <!-- Interview -->
   <main id="interview" class="panel">
-    <div class="modes" id="modes">
+    <div class="modes fadeable" id="modes">
       <div class="seg" role="group" aria-label="What to talk about">
         <button type="button" id="modeDay" aria-pressed="true">Your day</button>
         <button type="button" id="modeSubject" aria-pressed="false">A subject</button>
       </div>
       <input id="topic" type="text" placeholder="What's the subject? (optional)" hidden>
     </div>
-    <div class="meta"><span id="qnum">Q 01</span><span id="modeLabel">Your day</span><span id="dateLabel"></span><span class="chip" id="brainChip">Offline</span></div>
+    <div class="meta fadeable"><span id="qnum">Q 01</span><span id="modeLabel">Your day</span><span id="dateLabel"></span><span class="chip" id="brainChip">Offline</span></div>
     <h1 class="question" id="question" aria-live="polite">…</h1>
     <div class="composer">
       <textarea id="answer" placeholder="Answer however it comes out. Rough is fine."></textarea>
-      <div class="row">
+      <div class="row fadeable">
         <button class="btn primary" id="send" type="button">Answer</button>
         <button class="btn" id="mic" type="button" hidden>Speak</button>
         <span class="spacer"></span>
         <button class="link" id="skip" type="button">Different question</button>
         <button class="link" id="finish" type="button">Finish</button>
       </div>
-      <div class="hint" id="kbHint">Ctrl/⌘ + Enter to answer.</div>
+      <div class="hint fadeable" id="kbHint">Ctrl/⌘ + Enter to answer.</div>
     </div>
-    <section class="log" id="log" hidden>
+    <section class="log fadeable" id="log" hidden>
       <h2>So far</h2>
       <div id="turns" class="panel"></div>
     </section>
@@ -469,6 +476,21 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     const l = document.createElement("link"); l.rel = "manifest"; l.href = "manifest.webmanifest"; document.head.appendChild(l);
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
+
+  // Focus mode: fade the page while you're in the answer box
+  (() => {
+    const box = $("answer");
+    const hover = matchMedia("(hover: hover)").matches;
+    let pointerIn = false;
+    const update = () => document.body.classList.toggle("focusing", document.activeElement === box && (pointerIn || !hover));
+    box.addEventListener("focus", () => { pointerIn = true; update(); });
+    box.addEventListener("blur", update);
+    document.addEventListener("mousemove", (e) => {
+      const inside = e.target === box;
+      if (inside !== pointerIn) { pointerIn = inside; update(); }
+    });
+    box.addEventListener("keydown", (e) => { if (e.key === "Escape") box.blur(); });
+  })();
 
   $("answer").value = store.get("wk.draft", "");
   render();
