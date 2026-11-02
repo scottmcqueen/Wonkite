@@ -1,6 +1,6 @@
 # Wonkite
 
-**[Try it → scottmcqueen.github.io/wonkite](https://scottmcqueen.github.io/wonkite/)**
+**[Try it → scottmcqueen.github.io/Wonkite](https://scottmcqueen.github.io/Wonkite/)**
 
 A small interviewer, named with a nod to Walter Cronkite. It asks one question at a time so you can talk your way past the blank page. When you're done, it hands back what you said as a Markdown draft.
 
