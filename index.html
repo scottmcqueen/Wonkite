@@ -692,7 +692,10 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     const cands = [];
     let pos = 0;
     text.split(/[.!?;\n]+/).forEach((s) => {
-      const toks = s.match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+      const hits = [...s.matchAll(/[A-Za-z][A-Za-z'’-]*/g)];
+      const toks = hits.map((m) => m[0]);
+      // a word just after an opening quote, colon or dash starts its own sentence ("Bless you"), so its capital isn't a name
+      const opens = hits.map((m) => /["“‘'(:—–]$/.test(s.slice(0, m.index).trimEnd()));
       toks.forEach((t, i) => {
         pos++;
         if (DET.test(t)) {
@@ -710,7 +713,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
           while (parts.length > 2 && (/(ed|ly)$/i.test(parts[parts.length - 1]) || ADJ.has(parts[parts.length - 1].toLowerCase()))) parts.pop();
           const named = parts.slice(1).some((w) => /^[A-Z]/.test(w)) ? 1 : 0;
           if (parts.length >= 2) cands.push({ p: parts.join(" "), s: parts.length + named + pos * 0.05 });
-        } else if (i > 0 && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase()) && !DET.test(toks[i - 1])) {
+        } else if (i > 0 && !opens[i] && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase()) && !DET.test(toks[i - 1])) {
           const parts = [t];
           for (let j = i + 1; j < toks.length && /^[A-Z]/.test(toks[j]) && parts.length < 3; j++) parts.push(toks[j]);
           cands.push({ p: parts.join(" "), s: 3 + pos * 0.05 });
