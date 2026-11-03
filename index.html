@@ -238,6 +238,9 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const DET = /^(the|my|a|an|our|his|her|their|this|that|these|those)$/i;
   const FEEL = /\b(felt|feel|feeling|happy|sad|angry|annoyed|frustrat\w*|nervous|anxious|excited|tired|exhausted|proud|relieved|scared|afraid|worried|stressed|calm|lonely|grateful|embarrass\w*|guilty|hurt|upset|glad|disappoint\w*|overwhelm\w*|bored|weird|strange)\b/i;
   const TAIL = new Set(["day", "days", "morning", "afternoon", "evening", "night", "week", "weekend", "time"]);
+  const PREP = new Set("including like near behind beside across through without within during toward towards among between against along beyond under over inside outside via per plus except despite since until upon onto into onto past round versus than whose which who where while".split(" "));
+  const VERB = new Set("broke went ran fell sat stood drove rode flew began became brought bought caught taught found held lost met paid sold sent spent won wore wrote grew knew threw hit cut quit sang swam ate drank slept woke fought shot built meant heard stuck dug hung lit led fed is are was were has had does did can will would could should might must".split(" "));
+  const ADJ = new Set("little big small old new good great nice long short tiny huge whole same other own only real best worst first last next few several such quite very really".split(" "));
   const NARR = /\b(then|after|afterwards|suddenly|finally|eventually|later|next)\b/i;
   const FLIP = { my: "your", our: "your", me: "you", i: "you", myself: "yourself", mine: "yours", we: "you", us: "you", "i'm": "you're" };
 
@@ -595,11 +598,15 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
           const parts = [t];
           for (let j = i + 1; j < toks.length && parts.length < 4; j++) {
             const w = toks[j];
-            if (TAIL.has(w.toLowerCase())) { parts.push(w); break; }
-            if (STOP.has(w.toLowerCase()) || DET.test(w)) break;
+            const lw = w.toLowerCase();
+            if (TAIL.has(lw)) { parts.push(w); break; }
+            if (STOP.has(lw) || DET.test(w) || PREP.has(lw) || VERB.has(lw)) break;
+            // a verb or "-ing" word after the noun ends the phrase ("an aesthetic including...")
+            if (parts.length >= 2 && /(ing|ed)$/.test(lw)) break;
             parts.push(w);
           }
-          while (parts.length > 2 && /ed$/i.test(parts[parts.length - 1])) parts.pop();
+          // a phrase ends on its noun, not on a describing word or adverb
+          while (parts.length > 2 && (/(ed|ly)$/i.test(parts[parts.length - 1]) || ADJ.has(parts[parts.length - 1].toLowerCase()))) parts.pop();
           const named = parts.slice(1).some((w) => /^[A-Z]/.test(w)) ? 1 : 0;
           if (parts.length >= 2) cands.push({ p: parts.join(" "), s: parts.length + named + pos * 0.05 });
         } else if (i > 0 && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase()) && !DET.test(toks[i - 1])) {

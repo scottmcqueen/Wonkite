@@ -10,7 +10,7 @@ It is called Wonkite. Its mission is a modest one: to get a person past the blan
 
 ## The report
 
-**It works offline.** The questions come from the device itself. Wonkite picks out a detail from your last answer, a place, a name, a "your brother's truck," and builds its next question around it. It moves through the reporter's standard set: the detail, the why, the people involved, what it looked and sounded like, how it differed from what you expected, and what someone hearing the short version would get wrong. When you mention a feeling, it follows the feeling. When you say "and then," it asks what happened next. After four questions on one line of inquiry, it steps back and asks what else belongs in the story. Nothing you say leaves the device.
+**It works offline.** The questions come from the device itself. Wonkite picks out a detail from your last answer, a place, a name, a "your old truck," and builds its next question around it. Each line of inquiry starts with the story, moves to the details, the people, the moments before and after, and only at the end asks what you make of it all. When you use a describing word, it asks what you mean by it. When you mention a feeling, it follows the feeling. When you say "and then," it asks what happened next. Threads you mentioned and it didn't follow, it comes back to later. Nothing you say leaves the device.
 
 **It interviews by the book.** Its questions follow the working rules of journalists, oral historians and researchers: short, open and neutral; the speaker's own words handed back to them; the story and its details first, and only then what it meant. The full account, with sources, is in [docs/INTERVIEWING.md](docs/INTERVIEWING.md).
 
