@@ -237,6 +237,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const STOP = new Set(("a an the and or but so to of in on at for with from by about into over after before up down out off than then just really very quite pretty kind sort lot lots bit thing things stuff something anything everything nothing some any all this that these those it its it's i i'm i've i'd i'll me my mine myself we us our you your he she they them their his her him was were is are be been being am do did does done have has had get got getting go went going gone make made making say said says think thought know knew like went today yesterday tomorrow morning afternoon evening night day days time also still even well yeah yes no not don't didn't can't couldn't wasn't isn't would could should will maybe probably actually basically there here where when what who why how which one ones called came come told asked took take gave give saw see looked look felt feel seemed started stopped tried wanted want needed need decided left put ran kept let turned found used work worked back way much many more most other again around because though while if as too").split(" "));
   const DET = /^(the|my|a|an|our|his|her|their|this|that|these|those)$/i;
   const FEEL = /\b(felt|feel|feeling|happy|sad|angry|annoyed|frustrat\w*|nervous|anxious|excited|tired|exhausted|proud|relieved|scared|afraid|worried|stressed|calm|lonely|grateful|embarrass\w*|guilty|hurt|upset|glad|disappoint\w*|overwhelm\w*|bored|weird|strange)\b/i;
+  const TAIL = new Set(["day", "days", "morning", "afternoon", "evening", "night", "week", "weekend", "time"]);
   const NARR = /\b(then|after|afterwards|suddenly|finally|eventually|later|next)\b/i;
   const FLIP = { my: "your", our: "your", me: "you", i: "you", myself: "yourself", mine: "yours", we: "you", us: "you", "i'm": "you're" };
 
@@ -245,22 +246,29 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     subject: ["What do you want to talk about?", "What's been on your mind lately?", "What have you been meaning to write about?", "If a friend asked what's new, what would you tell them about?"],
     subjectTopic: ["What made you want to talk about {t} right now?", "Where does {t} start, for you?"]
   };
+  // Question types, by where they sit in a thread. Each thread runs story -> detail -> meaning.
+  // Rules: short, open, neutral; what/how rather than why; their words, not ours. See docs/INTERVIEWING.md.
   const Q = {
-    detail: ["Take me back to {x}. What did it look like?", "What's the first thing you'd tell someone about {x}?", "Describe {x} for someone who wasn't there.", "What's one small detail about {x} you remember?"],
-    sensory: ["What could you hear or smell around {x}?", "Picture {x} again. What do you see first?"],
-    why: ["Why do you think {x} stuck with you?", "What made {x} matter?", "What does {x} say about where you are right now?"],
-    example: ["Give me one specific moment with {x}.", "Can you tell me about a time that shows what you mean?"],
-    contrast: ["How was {x} different from what you expected?", "What would {x} have looked like a year ago?"],
-    people: ["Who else was part of {x}?", "What would someone else who was there say about {x}?"],
-    outsider: ["What would people get wrong about {x} if they only heard the short version?"],
-    next: ["What happened after that?", "And then what?", "Where did it go from there?"],
-    feeling: ["How did that feel at the time?", "What was going on in your head right then?", "Has that feeling changed since?"],
-    expand: ["Say a bit more about that.", "Go on.", "What do you mean by {x}?"],
-    zoom: ["Let's step back. What else is part of this?", "What haven't you mentioned yet that belongs in here?", "If you had to pick the most important part so far, what would it be?"],
-    zoomDay: ["Let's step back. What else happened today?", "Was there a moment today you'd want to remember a year from now?", "Who did you talk to today?"],
-    zoomTopic: ["What else about {t} do you want to get down?"]
+    tour: ["Tell me about {x}.", "What was {x} like?", "Walk me through it from the start."],
+    detail: ["What else do you remember about {x}?", "Describe {x} for someone who wasn't there.", "What's one small detail about {x} that comes back to you?"],
+    context: ["Put yourself back there for a moment. What's around you?", "Picture it again. What do you see first?", "What could you hear or smell right then?"],
+    example: ["What's an example of that?", "Tell me about one particular moment that shows what you mean."],
+    people: ["Who else was there?", "Who else was around?"],
+    sequence: ["What happened next?", "What happened just before that?", "Where did it go from there?"],
+    perspective: ["How would someone else who was there tell it?", "How might {x} look to someone hearing about it for the first time?"],
+    words: ["What do you mean, {w}?", "{W} how?", "What made it {w}?"],
+    feeling: ["What was going on in your head right then?", "How did that feel at the time?"],
+    expand: ["Tell me more.", "Go on.", "What do you mean by {x}?"],
+    reflect: ["Looking back on all that, what do you make of it?", "What do you take from it now?", "How did it compare with what you expected?"],
+    zoom: ["What else is part of this?", "What haven't you mentioned yet that belongs in here?", "Of everything so far, what's the most important part?"],
+    zoomDay: ["What else happened today?", "What's a moment from today you'd want to remember a year from now?", "Who did you talk to today?"],
+    zoomTopic: ["What else about {t} do you want to get down?"],
+    back: ["Earlier you mentioned {x}. Tell me more about that.", "You mentioned {x} a while back. What was that about?"]
   };
-  const ROT = ["detail", "why", "people", "sensory", "contrast", "example", "outsider"];
+  const MIDDLE = ["detail", "detail", "context", "people", "example"];
+  const LATE = ["perspective", "sequence", "people", "example"];
+  // Describing words worth handing back to the speaker ("What do you mean, weird?")
+  const VALUE = /\b(weird|strange|odd|amazing|incredible|awesome|awful|terrible|horrible|hard|tough|rough|brutal|crazy|wild|insane|perfect|beautiful|gorgeous|boring|annoying|frustrating|interesting|funny|hilarious|special|important|magical|surreal|intense|stressful|chaotic|peaceful|scary|exciting|nice|fine|okay|great|good|bad|messy|epic|lovely|sketchy|fun|unreal|wonderful)\b/gi;
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   // Getting-to-know-you question bank, by theme
@@ -281,7 +289,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "What was a family tradition you loved, or quietly dreaded?",
       "What's the earliest memory you're sure is real?",
       "What did you collect as a kid?",
-      "Which teacher do you still think about, and why?",
+      "Which teacher do you still think about?",
       "What was the first book you remember loving?",
       "What were weekends like when you were young?"
     ],
@@ -293,7 +301,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "What does home mean to you right now?",
       "What's your favorite spot within walking distance of where you sleep?",
       "What's a town you passed through once and still think about?",
-      "If you could live anywhere for one year, where would it be and why?",
+      "If you could live anywhere for one year, where would it be?",
       "What's something about where you're from that outsiders don't know?",
       "What's the first place you'd show a visitor?",
       "Where do you go when you need to think?",
@@ -313,7 +321,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "Who's the most memorable stranger you've met on the road?",
       "Where do you want to go next, and what's stopping you?",
       "What's a place that lived up to the hype?",
-      "What's a place that didn't live up to the hype, and why?",
+      "What's a place that didn't live up to the hype?",
       "What's the longest you've gone without a plan?",
       "What's your favorite way to travel, and what do you love about it?",
       "What did you learn about yourself the first time you traveled alone?",
@@ -336,7 +344,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "Who taught you the most about doing a job well?",
       "What's a mistake at work you learned the most from?",
       "What did you think your work life would look like ten years ago?",
-      "What's a job you'd be terrible at, and why?",
+      "What's a job you'd be terrible at?",
       "What's the most unusual job you've ever done?",
       "What's a problem you solved that you're still a little smug about?"
     ],
@@ -400,7 +408,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "What's a habit you're trying to break?",
       "How do you wind down at the end of the day?",
       "What's something you do exactly the same way every time?",
-      "Are you a planner or someone who wings it? Give me an example.",
+      "What does planning ahead look like for you?",
       "What do you do on a day with nothing scheduled?",
       "What's your relationship with your phone like?",
       "What's a chore you secretly enjoy?",
@@ -468,7 +476,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "What's the best night sky you've ever seen?",
       "What's a trail, road or route you'd do again tomorrow?",
       "What's an animal you've had a memorable encounter with?",
-      "Mountains, coast, desert or forest, and why?",
+      "What kind of landscape pulls at you most?",
       "Where outdoors do you feel small in a good way?",
       "What's the most extreme weather you've been caught in?",
       "What's something you've grown, built or made outside?",
@@ -501,7 +509,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       "If you had to teach a class on anything, what would it be?",
       "If you could witness any moment in history, which would you choose?",
       "If you got one extra hour every day, what would you do with it?",
-      "If you could instantly speak one more language, which one and why?",
+      "If you could instantly speak one more language, which one?",
       "If you could live in any decade, which would you pick?",
       "If a modest windfall landed tomorrow, what's the first thing you'd do with it?",
       "If you could have any job for one week, what would it be?",
@@ -569,7 +577,11 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   }
 
   function flip(p) {
-    return p.split(" ").map((w) => FLIP[w.toLowerCase()] || w).join(" ");
+    return p.split(" ").map((w, i) => {
+      if (i === 0 && /^an?$/i.test(w)) return "that";
+      if (i === 0 && DET.test(w)) return FLIP[w.toLowerCase()] || w.toLowerCase();
+      return FLIP[w.toLowerCase()] || w;
+    }).join(" ");
   }
 
   function pickPhrase(text) {
@@ -583,12 +595,14 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
           const parts = [t];
           for (let j = i + 1; j < toks.length && parts.length < 4; j++) {
             const w = toks[j];
+            if (TAIL.has(w.toLowerCase())) { parts.push(w); break; }
             if (STOP.has(w.toLowerCase()) || DET.test(w)) break;
             parts.push(w);
           }
           while (parts.length > 2 && /ed$/i.test(parts[parts.length - 1])) parts.pop();
-          if (parts.length >= 2) cands.push({ p: parts.join(" "), s: parts.length + pos * 0.05 });
-        } else if (i > 0 && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase())) {
+          const named = parts.slice(1).some((w) => /^[A-Z]/.test(w)) ? 1 : 0;
+          if (parts.length >= 2) cands.push({ p: parts.join(" "), s: parts.length + named + pos * 0.05 });
+        } else if (i > 0 && /^[A-Z]/.test(t) && !STOP.has(t.toLowerCase()) && !DET.test(toks[i - 1])) {
           const parts = [t];
           for (let j = i + 1; j < toks.length && /^[A-Z]/.test(toks[j]) && parts.length < 3; j++) parts.push(toks[j]);
           cands.push({ p: parts.join(" "), s: 3 + pos * 0.05 });
@@ -598,45 +612,78 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       });
     });
     const used = new Set(S.usedP);
-    const best = cands.filter((c) => !used.has(c.p.toLowerCase())).sort((a, b) => b.s - a.s)[0];
-    if (!best) return null;
+    const ranked = cands.filter((c) => !used.has(c.p.toLowerCase())).sort((a, b) => b.s - a.s);
+    if (!ranked.length) return null;
+    const best = ranked[0];
     S.usedP.push(best.p.toLowerCase());
+    // Note the runner-up threads so we can come back to them later
+    ranked.slice(1, 3).filter((c) => c.s >= 2).forEach((c) => park(flip(c.p)));
     return flip(best.p);
   }
 
-  function fill(kind, x) {
-    let pool = Q[kind].filter((t) => (x ? true : !t.includes("{x}")));
+  function park(x) {
+    if (!x || S.parked.some((p) => p.toLowerCase() === x.toLowerCase())) return;
+    S.parked.push(x);
+    if (S.parked.length > 8) S.parked.shift();
+  }
+
+  function pickWord(text) {
+    const found = (text.match(VALUE) || []).map((w) => w.toLowerCase()).filter((w) => !S.usedP.includes("w:" + w));
+    if (!found.length) return null;
+    const w = found[found.length - 1];
+    S.usedP.push("w:" + w);
+    return w;
+  }
+
+  function fill(kind, x, w) {
+    let pool = Q[kind].filter((t) => (x || !t.includes("{x}")) && (w || !/\{w\}/i.test(t)));
     if (!pool.length) return null;
+    if (x && pool.some((t) => t.includes("{x}"))) pool = pool.filter((t) => t.includes("{x}"));
     const fresh = pool.filter((t) => !S.usedT.includes(t));
     const t = pick(fresh.length ? fresh : pool);
     S.usedT.push(t);
-    return t.replace("{x}", x || "").replace("{t}", S.topic);
+    fill.usedX = t.includes("{x}");
+    return t.replace("{x}", x || "").replace("{t}", S.topic)
+      .replace("{w}", w || "").replace("{W}", w ? w[0].toUpperCase() + w.slice(1) : "");
   }
 
   function offlineNext(ans, skipping) {
+    S.parked = S.parked || [];
     const words = ans.trim().split(/\s+/).filter(Boolean);
     const recent = S.kinds.slice(-3);
+    const last = recent[recent.length - 1];
+    const d = S.depth;
+    const fresh = (k) => !recent.includes(k);
     const x = pickPhrase(ans);
+    const w = skipping ? null : pickWord(ans);
     let kind;
-    if (S.depth >= 4) kind = "zoom";
-    else if (!skipping && words.length < 5 && recent[recent.length - 1] !== "expand") kind = "expand";
-    else if (!skipping && FEEL.test(ans) && !recent.includes("feeling")) kind = "feeling";
-    else if (!skipping && NARR.test(ans) && !recent.includes("next") && Math.random() < 0.6) kind = "next";
+    if (last === "reflect" || d >= 6) kind = "zoom";
+    else if (d >= 4) kind = "reflect";
+    else if (w && fresh("words")) kind = "words";
+    else if (!skipping && words.length < 5 && last !== "expand") kind = "expand";
+    else if (d === 0 && x && !x.startsWith("“") && fresh("tour")) kind = "tour";
+    else if (!skipping && d >= 1 && FEEL.test(ans) && fresh("feeling")) kind = "feeling";
+    else if (!skipping && NARR.test(ans) && fresh("sequence") && Math.random() < 0.6) kind = "sequence";
     else {
-      for (let i = 0; i < ROT.length; i++) {
-        const k = ROT[(S.rot + i) % ROT.length];
-        if (!recent.includes(k)) { kind = k; S.rot = (S.rot + i + 1) % ROT.length; break; }
-      }
-      kind = kind || "detail";
+      const pool = (d >= 3 ? LATE : MIDDLE).filter(fresh);
+      kind = pick(pool.length ? pool : MIDDLE);
     }
-    if (kind === "zoom") {
-      if (S.mode === "you") return { kind, q: bankQ() };
-      const pool = S.mode === "day" ? "zoomDay" : S.topic ? "zoomTopic" : "zoom";
-      return { kind, q: Math.random() < 0.5 ? fill(pool) : fill("zoom") };
-    }
-    let q = fill(kind, x);
-    if (!q) { kind = pick(["next", "feeling", "expand"]); q = fill(kind, null); }
+    if (kind === "zoom") { if (x && !x.startsWith("“")) park(x); return zoomOut(); }
+    const weak = x && x.startsWith("“");
+    let q = fill(kind, weak && kind !== "expand" ? null : x, w);
+    if (!q) { kind = pick(["sequence", "feeling", "expand"]); q = fill(kind, null, null); }
+    if (x && !weak && !fill.usedX) park(x);
     return { kind, q };
+  }
+
+  function zoomOut() {
+    if (S.parked.length && Math.random() < 0.5) {
+      const x = S.parked.pop();
+      return { kind: "zoom", q: fill("back", x) };
+    }
+    if (S.mode === "you") return { kind: "zoom", q: bankQ() };
+    const pool = S.mode === "day" ? "zoomDay" : S.topic ? "zoomTopic" : "zoom";
+    return { kind: "zoom", q: Math.random() < 0.5 ? fill(pool) : fill("zoom") };
   }
 
   // ---------- online (optional) ----------
@@ -667,7 +714,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   const custom = store.get("wk.custom", {});
   let S = store.get("wk.session", null) || fresh("day", "");
   function fresh(mode, topic) {
-    return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [], lastCat: null };
+    return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [], parked: [], lastCat: null };
   }
   function opener(avoid) {
     if (S.mode === "you") return { kind: "open", q: bankQ() };
