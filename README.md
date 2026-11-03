@@ -16,7 +16,7 @@ It is called Wonkite. Its mission is a modest one: to get a person past the blan
 
 **It can be smarter, if you ask.** In Settings, a reporter may switch on the online mode and give the address of a question service, found in `worker/`. Only the last six questions and answers are sent. Should the service be slow, or fail to answer at all, the offline interviewer takes the next question without missing a beat.
 
-**It keeps your attention on the question.** While you are answering, the rest of the page dims and the answer box comes forward. Move the mouse away, or press Esc, and the room comes back up.
+**It keeps your attention on the question.** While you are answering, the rest of the page dims and the answer box comes forward. Move the mouse away, or press Esc, and the room comes back up. In Settings there are eight colour themes, from Paper to Lamplight, and the page eases from one to the next through a soft blur.
 
 **It takes notes on itself.** Every question carries a thumbs up and a thumbs down, and so does each one in the log. A question rated down twice is set aside on that device, and a bank question rated down is not asked again. Those who choose to may also share their ratings with the question service, so the questions can be improved for everyone. The answer that prompted a question is sent only if the reporter ticks that box as well.
 

@@ -12,29 +12,56 @@
 <style>
 /* Layout: one narrow column like a reporter's notepad — the current question is the page; the log trails underneath. */
 :root {
-  --bg: #E9EEEC;
-  --paper: #F6F8F7;
-  --ink: #1C2A30;
-  --muted: #5D6C70;
-  --rule: #CBD5D2;
-  --accent: #2C6A6E;
-  --accent-ink: #FFFFFF;
-  --rec: #B4432F;
   --f-q: "Literata", "Iowan Old Style", Georgia, serif;
   --f-ui: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  color-scheme: light;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
+/* Colour themes. With no data-theme the page follows the device; the selectors are not tied
+   to :root so the swatches in Settings can show each theme on themselves. */
+:root, [data-theme="light"] {
+  --bg: #E9EEEC; --paper: #F6F8F7; --ink: #1C2A30; --muted: #5D6C70; --rule: #CBD5D2;
+  --accent: #2C6A6E; --accent-ink: #FFFFFF; --rec: #B4432F; color-scheme: light;
+}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --bg: #12191C; --paper: #1A2327; --ink: #E2E9E7; --muted: #8E9C9E; --rule: #2C393D;
     --accent: #74B6B5; --accent-ink: #0E1517; --rec: #E07A62; color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
+[data-theme="dark"] {
   --bg: #12191C; --paper: #1A2327; --ink: #E2E9E7; --muted: #8E9C9E; --rule: #2C393D;
   --accent: #74B6B5; --accent-ink: #0E1517; --rec: #E07A62; color-scheme: dark;
 }
+[data-theme="paper"] {
+  --bg: #EFE6D6; --paper: #F8F2E7; --ink: #3A2E22; --muted: #6E5E4B; --rule: #D9CBB4;
+  --accent: #8E5427; --accent-ink: #FFFFFF; --rec: #A33A2A; color-scheme: light;
+}
+[data-theme="sage"] {
+  --bg: #E4EBE1; --paper: #F2F6EF; --ink: #22302A; --muted: #56645A; --rule: #C6D2C1;
+  --accent: #47673A; --accent-ink: #FFFFFF; --rec: #A9442E; color-scheme: light;
+}
+[data-theme="dusk"] {
+  --bg: #1B1A26; --paper: #242333; --ink: #E6E3F0; --muted: #A09DB4; --rule: #363549;
+  --accent: #ABA0E2; --accent-ink: #15131F; --rec: #E58A78; color-scheme: dark;
+}
+[data-theme="lamplight"] {
+  --bg: #15120E; --paper: #1E1A15; --ink: #EADFCB; --muted: #A89C87; --rule: #342D24;
+  --accent: #D9A55B; --accent-ink: #17120B; --rec: #E07A62; color-scheme: dark;
+}
+[data-theme="contrast"] {
+  --bg: #FFFFFF; --paper: #FFFFFF; --ink: #000000; --muted: #3D3D3D; --rule: #6B6B6B;
+  --accent: #0040A8; --accent-ink: #FFFFFF; --rec: #B00020; color-scheme: light;
+}
+
+/* Changing theme: the old page blurs and fades out while the new one comes in from a blur. */
+::view-transition-old(root) { animation: wk-theme-out .6s cubic-bezier(.4, 0, .2, 1) both; }
+::view-transition-new(root) { animation: wk-theme-in .6s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes wk-theme-out { to { opacity: 0; filter: blur(10px); } }
+@keyframes wk-theme-in { from { opacity: 0; filter: blur(10px); } }
+/* Browsers without view transitions: dip the page into a blur, swap, and bring it back. */
+body { transition: background-color .6s ease, color .6s ease; }
+.wrap { transition: opacity .3s ease, filter .3s ease; }
+body.theming .wrap { opacity: 0; filter: blur(8px); }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { min-height: 100%; }
@@ -49,6 +76,20 @@ body {
 header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
 .mark { font-family: var(--f-q); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
 .mark span { color: var(--accent); }
+.mark { position: relative; cursor: default; border-radius: 4px; }
+.mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.about {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 10; width: min(340px, calc(100vw - 32px)); margin: 0;
+  padding: 12px 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+  font-family: var(--f-q); font-size: 15px; font-weight: 400; line-height: 1.5; letter-spacing: 0;
+  opacity: 0; filter: blur(4px); transform: translateY(-4px); pointer-events: none; visibility: hidden;
+  transition: opacity .35s ease, filter .35s ease, transform .35s ease, visibility 0s linear .35s;
+}
+.mark:hover .about, .mark:focus-visible .about {
+  opacity: 1; filter: none; transform: none; visibility: visible;
+  transition: opacity .35s ease, filter .35s ease, transform .35s ease, visibility 0s;
+}
 .link { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--rule); }
 .link:hover { color: var(--ink); }
 .head-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -124,12 +165,37 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
 .note { font-size: 14px; color: var(--muted); max-width: 60ch; margin: 0; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; }
 .confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 14px; }
-@media (prefers-reduced-motion: reduce) { .question, .fadeable, textarea { transition: none; } }
+
+/* Theme picker */
+.themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.themes legend { padding: 0; margin-bottom: 8px; }
+.swatch { position: relative; display: flex; flex-direction: column; gap: 6px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch .tile { display: flex; height: 58px; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
+.swatch .tile > span { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 0 10px; background: var(--bg); }
+.swatch .tile i { display: block; height: 5px; border-radius: 3px; background: var(--ink); width: 70%; }
+.swatch .tile i + i { background: var(--muted); width: 45%; }
+.swatch .tile b { display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); }
+.swatch:hover .tile { border-color: var(--muted); }
+.swatch input:checked + .tile { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.swatch input:checked ~ .name { color: var(--ink); font-weight: 600; }
+.swatch input:focus-visible + .tile { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .question, .fadeable, textarea, body, .wrap, .swatch .tile, .about { transition: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
 </style>
+<script>
+  // Set the saved theme before the page paints, so it never flashes the default.
+  (() => { try { const t = JSON.parse(localStorage.getItem("wk.theme")); if (t && t !== "auto") document.documentElement.dataset.theme = t; } catch {} })();
+</script>
 
 <div class="wrap">
   <header class="fadeable">
-    <div class="mark">Wonkite<span>.</span></div>
+    <div class="mark" tabindex="0" aria-describedby="about">Wonkite<span>.</span>
+      <p class="about" id="about" role="tooltip">Named for Walter Cronkite, Wonkite is a quiet interviewer for the blank page. It asks one short question at a time, built from what you just said, and hands your own words back as a draft.</p>
+    </div>
     <div class="head-actions">
       <button class="link" id="openQuestions" type="button">Questions</button>
       <button class="link" id="openSettings" type="button">Settings</button>
@@ -229,6 +295,9 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   <!-- Settings -->
   <section id="settingsView" class="panel" hidden>
     <h2>Settings</h2>
+    <fieldset class="themes" id="themes">
+      <legend class="hint">Theme</legend>
+    </fieldset>
     <label class="check"><input type="checkbox" id="onlineOn"> Smarter questions (online)</label>
     <div class="field">
       <label for="endpoint" class="hint">Question service URL</label>
@@ -914,6 +983,44 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     settings.shareFeedback = $("shareOn").checked; settings.shareAnswers = $("shareAns").checked;
     store.set("wk.settings", settings); render(); show("interview"); toast("Saved");
   });
+
+  // ---------- colour themes ----------
+  const THEMES = [
+    ["auto", "Match device"], ["light", "Light"], ["dark", "Dark"], ["paper", "Paper"],
+    ["sage", "Sage"], ["dusk", "Dusk"], ["lamplight", "Lamplight"], ["contrast", "High contrast"]
+  ];
+  let theme = store.get("wk.theme", "auto");
+  if (!THEMES.some(([id]) => id === theme)) theme = "auto";
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  const syncThemeColor = () => { themeMeta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(); };
+  function setTheme(t) {
+    if (t === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+    syncThemeColor();
+  }
+  function changeTheme(t) {
+    if (t === theme) return;
+    theme = t; store.set("wk.theme", t);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return setTheme(t);
+    if (document.startViewTransition) { document.startViewTransition(() => setTheme(t)); return; }
+    document.body.classList.add("theming");
+    setTimeout(() => { setTheme(t); requestAnimationFrame(() => document.body.classList.remove("theming")); }, 300);
+  }
+  THEMES.forEach(([id, name]) => {
+    const label = document.createElement("label"); label.className = "swatch";
+    const input = document.createElement("input");
+    input.type = "radio"; input.name = "theme"; input.value = id; input.checked = id === theme;
+    input.addEventListener("change", () => changeTheme(id));
+    const tile = document.createElement("span"); tile.className = "tile";
+    (id === "auto" ? ["light", "dark"] : [id]).forEach((look) => {
+      const s = document.createElement("span"); s.dataset.theme = look;
+      s.innerHTML = "<b></b><i></i><i></i>"; tile.appendChild(s);
+    });
+    const caption = document.createElement("span"); caption.className = "name"; caption.textContent = name;
+    label.append(input, tile, caption); $("themes").appendChild(label);
+  });
+  setTheme(theme);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeColor);
 
   // ---------- question ratings ----------
   const THUMB = $("voteUp").innerHTML;
