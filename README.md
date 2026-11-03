@@ -18,6 +18,8 @@ It is called Wonkite. Its mission is a modest one: to get a person past the blan
 
 **It keeps your attention on the question.** While you are answering, the rest of the page dims and the answer box comes forward. Move the mouse away, or press Esc, and the room comes back up.
 
+**It takes notes on itself.** Every question carries a thumbs up and a thumbs down, and so does each one in the log. A question rated down twice is set aside on that device, and a bank question rated down is not asked again. Those who choose to may also share their ratings with the question service, so the questions can be improved for everyone. The answer that prompted a question is sent only if the reporter ticks that box as well.
+
 **It keeps your notes.** The session, and any answer not yet sent, stay in the browser's local storage. On browsers that offer it, Chrome and Safari among them, you may speak your answers rather than type them.
 
 ## Putting it on the air
@@ -41,7 +43,11 @@ The optional service runs on Cloudflare Workers AI.
     cd worker
     npx wrangler deploy
 
-Its address will be `https://wonkite-api.<your-subdomain>.workers.dev/question`. Once the app has a permanent home, set `ALLOWED_ORIGIN` in `wrangler.toml` to that origin. The model is named at the top of `src/index.js`.
+Its address will be `https://wonkite-api.<your-subdomain>.workers.dev/question`. To collect shared question ratings, the service needs a small database and a private token for reading the results. Follow the steps in `wrangler.toml`, then redeploy. The summary, worst-rated questions first, with the latest answer that led to a thumbs down, is at:
+
+    curl -H "Authorization: Bearer $ADMIN_TOKEN" https://wonkite-api.<your-subdomain>.workers.dev/feedback/summary
+
+Once the app has a permanent home, set `ALLOWED_ORIGIN` in `wrangler.toml` to that origin. The model is named at the top of `src/index.js`.
 
 ---
 

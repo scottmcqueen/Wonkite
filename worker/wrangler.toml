@@ -8,3 +8,12 @@ binding = "AI"
 [vars]
 # Set to your app's origin (e.g. https://wonkite.example.com) once it's hosted.
 ALLOWED_ORIGIN = "*"
+
+# Question ratings (optional). Create the database, paste its id below, then uncomment:
+#   npx wrangler d1 create wonkite-feedback
+#   npx wrangler d1 execute wonkite-feedback --remote --file=schema.sql
+#   npx wrangler secret put ADMIN_TOKEN
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "wonkite-feedback"
+# database_id = "PASTE-ID-HERE"

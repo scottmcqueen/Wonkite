@@ -77,6 +77,19 @@ textarea:focus, #topic:focus, input:focus { outline: 2px solid var(--accent); ou
 #mic.rec { border-color: var(--rec); color: var(--rec); }
 .hint { font-size: 13px; color: var(--muted); }
 
+/* Question ratings */
+.qhead { display: flex; flex-direction: column; gap: 10px; }
+.votes { display: flex; gap: 6px; align-items: center; }
+.vote { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; border: 1px solid var(--rule); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; padding: 0; }
+.vote svg { width: 16px; height: 16px; }
+.vote.down svg { transform: rotate(180deg); }
+.vote[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.vote:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.votes .hint { margin-left: 4px; }
+.turn .votes { grid-column: 2; }
+.turn .vote { width: 28px; height: 24px; }
+.turn .vote svg { width: 13px; height: 13px; }
+
 /* Your questions */
 .field input[type=text] { font: inherit; font-size: 16px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); min-width: 0; flex: 1 1 200px; }
 #newTheme { flex: 0 1 180px; }
@@ -140,7 +153,14 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       <input id="topic" type="text" placeholder="What's the subject? (optional)" hidden>
     </div>
     <div class="meta fadeable"><span id="qnum">Q 01</span><span id="modeLabel">Your day</span><span id="dateLabel"></span><span class="chip" id="brainChip">Offline</span></div>
-    <h1 class="question" id="question" aria-live="polite">…</h1>
+    <div class="qhead">
+      <h1 class="question" id="question" aria-live="polite">…</h1>
+      <div class="votes fadeable" role="group" aria-label="Rate this question">
+        <button class="vote up" id="voteUp" type="button" aria-pressed="false" aria-label="Good question"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4-7a2.5 2.5 0 0 1 2.9 2.9L13 10h5.6a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.4 21H7"/></svg></button>
+        <button class="vote down" id="voteDown" type="button" aria-pressed="false" aria-label="Not a good question"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3zm0 0 4-7a2.5 2.5 0 0 1 2.9 2.9L13 10h5.6a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.4 21H7"/></svg></button>
+        <span class="hint" id="voteHint">Rate this question</span>
+      </div>
+    </div>
     <div class="composer">
       <textarea id="answer" placeholder="Answer however it comes out. Rough is fine."></textarea>
       <div class="row fadeable">
@@ -214,6 +234,9 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       <label for="endpoint" class="hint">Question service URL</label>
       <input type="url" id="endpoint" placeholder="https://wonkite-api.yourname.workers.dev/question">
     </div>
+    <label class="check"><input type="checkbox" id="shareOn"> Share my question ratings with the question service</label>
+    <label class="check"><input type="checkbox" id="shareAns"> Include the answer each rated question was built from</label>
+    <p class="note">Ratings always shape the questions on this device. Shared ratings go to the service above so the questions can be improved for everyone. Your answers are only included if you tick the second box. <button class="link" id="copyRatings" type="button">Copy my ratings</button> <span id="ratingCount"></span></p>
     <p class="note">Offline, questions come from this device and nothing leaves it. Online, only your last few answers are sent to the service you set here to write the next question. If it doesn't answer within a few seconds, the offline interviewer takes over.</p>
     <div class="row">
       <button class="btn primary" id="saveSettings" type="button">Save</button>
@@ -556,6 +579,13 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     ]
   };
 
+  function ratingScores() {
+    const m = {};
+    if (typeof feedback === "undefined") return m;
+    for (const r of Object.values(feedback)) m[r.template] = (m[r.template] || 0) + r.vote;
+    return m;
+  }
+
   function activeBank() {
     if (settings.onlyMine && Object.keys(custom).length) return custom;
     const m = {};
@@ -565,11 +595,13 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   }
   function bankQ() {
     const B = activeBank();
-    const left = (c) => B[c].filter((q) => !S.usedT.includes(q));
+    const sc = ratingScores();
+    const left = (c) => B[c].filter((q) => !S.usedT.includes(q) && (sc[q] || 0) >= 0);
     let cats = Object.keys(B).filter((c) => c !== S.lastCat && left(c).length);
     if (!cats.length) cats = Object.keys(B).filter((c) => left(c).length);
     if (!cats.length) {
       const all = new Set(Object.values(B).flat());
+      if (!S.usedT.some((q) => all.has(q))) return pick([...all]);
       S.usedT = S.usedT.filter((q) => !all.has(q));
       return bankQ();
     }
@@ -646,10 +678,14 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     let pool = Q[kind].filter((t) => (x || !t.includes("{x}")) && (w || !/\{w\}/i.test(t)));
     if (!pool.length) return null;
     if (x && pool.some((t) => t.includes("{x}"))) pool = pool.filter((t) => t.includes("{x}"));
+    const sc = ratingScores();
+    const kept = pool.filter((t) => (sc[t] || 0) > -2);
+    if (kept.length) pool = kept;
     const fresh = pool.filter((t) => !S.usedT.includes(t));
     const t = pick(fresh.length ? fresh : pool);
     S.usedT.push(t);
     fill.usedX = t.includes("{x}");
+    fill.lastT = t;
     return t.replace("{x}", x || "").replace("{t}", S.topic)
       .replace("{w}", w || "").replace("{W}", w ? w[0].toUpperCase() + w.slice(1) : "");
   }
@@ -680,17 +716,19 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     let q = fill(kind, weak && kind !== "expand" ? null : x, w);
     if (!q) { kind = pick(["sequence", "feeling", "expand"]); q = fill(kind, null, null); }
     if (x && !weak && !fill.usedX) park(x);
-    return { kind, q };
+    return { kind, q, t: fill.lastT };
   }
 
   function zoomOut() {
     if (S.parked.length && Math.random() < 0.5) {
       const x = S.parked.pop();
-      return { kind: "zoom", q: fill("back", x) };
+      const q = fill("back", x);
+      return { kind: "zoom", q, t: fill.lastT };
     }
-    if (S.mode === "you") return { kind: "zoom", q: bankQ() };
+    if (S.mode === "you") { const q = bankQ(); return { kind: "zoom", q, t: q }; }
     const pool = S.mode === "day" ? "zoomDay" : S.topic ? "zoomTopic" : "zoom";
-    return { kind: "zoom", q: Math.random() < 0.5 ? fill(pool) : fill("zoom") };
+    const q = Math.random() < 0.5 ? fill(pool) : fill("zoom");
+    return { kind: "zoom", q, t: fill.lastT };
   }
 
   // ---------- online (optional) ----------
@@ -719,17 +757,19 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   // ---------- state ----------
   const settings = store.get("wk.settings", { online: false, endpoint: "" });
   const custom = store.get("wk.custom", {});
+  const feedback = store.get("wk.feedback", {});
   let S = store.get("wk.session", null) || fresh("day", "");
   function fresh(mode, topic) {
     return { mode, topic, started: Date.now(), turns: [], current: null, depth: 0, rot: 0, kinds: [], usedT: [], usedP: [], parked: [], lastCat: null };
   }
   function opener(avoid) {
-    if (S.mode === "you") return { kind: "open", q: bankQ() };
+    if (S.mode === "you") { const q = bankQ(); return { kind: "open", q, t: q }; }
     const pool = S.mode === "day" ? OPENERS.day
       : S.topic ? OPENERS.subjectTopic.map((t) => t.replace("{t}", S.topic))
       : OPENERS.subject;
     const choices = pool.filter((q) => q !== avoid);
-    return { kind: "open", q: pick(choices.length ? choices : pool) };
+    const q = pick(choices.length ? choices : pool);
+    return { kind: "open", q, t: q };
   }
   const save = () => store.set("wk.session", S);
 
@@ -740,6 +780,9 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   function render() {
     if (!S.current) { S.current = opener(); save(); }
     $("question").textContent = S.current.q;
+    $("voteUp").setAttribute("aria-pressed", S.current.vote === 1);
+    $("voteDown").setAttribute("aria-pressed", S.current.vote === -1);
+    $("voteHint").textContent = S.current.vote === 1 ? "Noted: good question" : S.current.vote === -1 ? "Noted: we'll ask that less" : "Rate this question";
     $("qnum").textContent = "Q " + pad(S.turns.length + 1);
     $("modeLabel").textContent = S.mode === "day" ? "Your day" : S.mode === "you" ? "About you" : (S.topic ? "On " + S.topic : "A subject");
     $("dateLabel").textContent = fmtDate(S.started);
@@ -759,7 +802,15 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
       const n = S.turns.length - i;
       const d = document.createElement("div");
       d.className = "turn";
-      d.innerHTML = '<div class="n"></div><div class="q"></div><div class="a"></div>';
+      d.innerHTML = '<div class="n"></div><div class="q"></div><div class="a"></div><div class="votes"></div>';
+      const idx = n - 1;
+      [[1, "up", "Good question"], [-1, "down", "Not a good question"]].forEach(([v, cls, label]) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "vote " + cls; b.setAttribute("aria-label", label);
+        b.setAttribute("aria-pressed", t.vote === v); b.innerHTML = THUMB;
+        b.addEventListener("click", () => rate(idx, v));
+        d.querySelector(".votes").appendChild(b);
+      });
       d.querySelector(".n").textContent = pad(n);
       d.querySelector(".q").textContent = t.q;
       d.querySelector(".a").textContent = t.a;
@@ -787,13 +838,13 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
     const a = $("answer").value.trim();
     if (!a || busy) return;
     busy = true; $("send").disabled = true;
-    S.turns.push({ q: S.current.q, a });
+    S.turns.push({ q: S.current.q, a, t: S.current.t, kind: S.current.kind, vote: S.current.vote || 0 });
     $("answer").value = "";
     store.set("wk.draft", "");
     const off = offlineNext(a);
     $("question").classList.add("fade");
     const online = await onlineNext(off.kind);
-    S.current = { kind: off.kind, q: online || off.q };
+    S.current = { kind: off.kind, q: online || off.q, t: online ? "online: " + off.kind : off.t };
     S.kinds.push(off.kind);
     if (off.kind === "zoom") S.depth = 0; else S.depth++;
     save(); render();
@@ -852,12 +903,45 @@ label.check { display: inline-flex; gap: 8px; align-items: center; font-size: 15
   $("confirmNo").addEventListener("click", () => ($("confirmNew").hidden = true));
   $("confirmYes").addEventListener("click", () => { $("confirmNew").hidden = true; S = fresh(S.mode, ""); save(); render(); show("interview"); });
   $("openSettings").addEventListener("click", () => {
-    $("onlineOn").checked = settings.online; $("endpoint").value = settings.endpoint; show("settings");
+    $("onlineOn").checked = settings.online; $("endpoint").value = settings.endpoint;
+    $("shareOn").checked = !!settings.shareFeedback; $("shareAns").checked = !!settings.shareAnswers;
+    const n = Object.keys(feedback).length; $("ratingCount").textContent = n ? "(" + n + " so far)" : "";
+    show("settings");
   });
   $("closeSettings").addEventListener("click", () => show("interview"));
   $("saveSettings").addEventListener("click", () => {
     settings.online = $("onlineOn").checked; settings.endpoint = $("endpoint").value.trim();
+    settings.shareFeedback = $("shareOn").checked; settings.shareAnswers = $("shareAns").checked;
     store.set("wk.settings", settings); render(); show("interview"); toast("Saved");
+  });
+
+  // ---------- question ratings ----------
+  const THUMB = $("voteUp").innerHTML;
+  function rate(idx, v) {
+    const item = idx < S.turns.length ? S.turns[idx] : S.current;
+    item.vote = item.vote === v ? 0 : v;
+    const id = S.started + ":" + idx;
+    if (item.vote) {
+      feedback[id] = {
+        ts: Date.now(), mode: S.mode, kind: item.kind || "", template: item.t || item.q,
+        question: item.q, vote: item.vote, answer: idx > 0 ? S.turns[idx - 1].a.slice(0, 600) : ""
+      };
+      share(feedback[id]);
+    } else delete feedback[id];
+    store.set("wk.feedback", feedback); save(); render();
+  }
+  function share(r) {
+    if (!settings.shareFeedback || !settings.endpoint) return;
+    const url = settings.endpoint.replace(/\/question\/?$/, "").replace(/\/$/, "") + "/feedback";
+    const body = Object.assign({}, r, { answer: settings.shareAnswers ? r.answer : "" });
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+  }
+  $("voteUp").addEventListener("click", () => rate(S.turns.length, 1));
+  $("voteDown").addEventListener("click", () => rate(S.turns.length, -1));
+  $("copyRatings").addEventListener("click", () => {
+    const text = JSON.stringify(Object.values(feedback), null, 2);
+    if (text === "[]") { toast("No ratings yet."); return; }
+    navigator.clipboard.writeText(text).then(() => toast("Copied")).catch(() => toast("Couldn't copy here. Try the hosted app."));
   });
 
   // ---------- your questions ----------

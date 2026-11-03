@@ -41,6 +41,8 @@ export default {
     const headers = cors(env);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     const url = new URL(request.url);
+    if (url.pathname === "/feedback" && request.method === "POST") return saveFeedback(request, env, headers);
+    if (url.pathname === "/feedback/summary" && request.method === "GET") return feedbackSummary(request, env, headers);
     if (request.method !== "POST" || url.pathname !== "/question") {
       return new Response("Not found", { status: 404, headers });
     }
@@ -69,3 +71,37 @@ export default {
     }
   }
 };
+
+// ---------- question ratings ----------
+const clip = (v, n) => String(v || "").slice(0, n);
+
+async function saveFeedback(request, env, headers) {
+  if (!env.DB) return Response.json({ error: "feedback_not_configured" }, { status: 501, headers });
+  let r;
+  try { r = await request.json(); } catch { return new Response("Bad JSON", { status: 400, headers }); }
+  const vote = Number(r.vote);
+  if (vote !== 1 && vote !== -1 || !r.template) return new Response("Bad rating", { status: 400, headers });
+  await env.DB.prepare(
+    "INSERT INTO feedback (ts, mode, kind, template, question, vote, answer) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).bind(Date.now(), clip(r.mode, 20), clip(r.kind, 20), clip(r.template, 300), clip(r.question, 300), vote, clip(r.answer, 600)).run();
+  return new Response(null, { status: 204, headers });
+}
+
+// GET /feedback/summary with "Authorization: Bearer <ADMIN_TOKEN>"
+async function feedbackSummary(request, env, headers) {
+  if (!env.DB) return Response.json({ error: "feedback_not_configured" }, { status: 501, headers });
+  if (!env.ADMIN_TOKEN || request.headers.get("Authorization") !== "Bearer " + env.ADMIN_TOKEN) {
+    return new Response("Unauthorized", { status: 401, headers });
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT template, kind,
+            SUM(vote = 1) AS up, SUM(vote = -1) AS down, COUNT(*) AS total,
+            (SELECT question || '  <-  ' || answer FROM feedback f2
+              WHERE f2.template = f.template AND f2.vote = -1 AND f2.answer != ''
+              ORDER BY ts DESC LIMIT 1) AS latest_down_example
+       FROM feedback f
+      GROUP BY template, kind
+      ORDER BY (SUM(vote = -1) - SUM(vote = 1)) DESC, total DESC`
+  ).all();
+  return Response.json(results, { headers });
+}
